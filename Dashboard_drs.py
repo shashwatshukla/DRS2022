@@ -20,30 +20,30 @@ def dashboard():
 
     # _______________Data collection_______________________
     conn = sq.connect(db)
-    df_DRS = pd.read_sql_query('select * from drsend', conn)  # get DR sender data
+    df_openDRS = pd.read_sql_query("select * from drsend where status='OPEN'", conn)  # get DR sender data
     df_vsl = pd.read_sql_query(
-        "select vslName, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1' "
-        "and (vslFleet = '1' or vslFleet = '2' or vslFleet = '3')",
-        conn)  # Get active tanker fleet vessel names and IMO
+        "select vslName, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1'",conn)  # Get active tanker fleet vessel names and IMO
     df_SI = pd.read_sql_query("select SI_UID, siEmail from si where statusActiveInactive = '1'", conn)  # Get active SI
 
     # _________________Data cleaning_________________________
-    df_DRS[['delay_hr', 'downtime_hr', 'VET_risk']] = df_DRS[['delay_hr', 'downtime_hr', 'VET_risk']] \
+    df_openDRS[['delay_hr', 'downtime_hr', 'VET_risk']] = df_openDRS[['delay_hr', 'downtime_hr', 'VET_risk']] \
         .apply(pd.to_numeric, errors='coerce', axis=1)  # convert to numeric
-    df_DRS['vsl_imo'] = df_DRS['vsl_imo'].astype(int)  # convert IMO number to int
-    SI_mailid = {row.SI_UID: row.siEmail for (index, row) in
-                 df_SI.iterrows()}  # convert SI uniqeid and email to dictionary dunno why i did this
+    df_openDRS['vsl_imo'] = df_openDRS['vsl_imo'].astype(int)  # convert IMO number to int
+    # SI_mailid = {row.SI_UID: row.siEmail for (index, row) in
+    #              df_SI.iterrows()}  # convert SI uniqeid and email to dictionary dunno why i did this
     imoactive = (df_vsl['vsl_imo'])  # Tuple of active tanker vessel IMO
-    active = df_DRS['vsl_imo'].isin(imoactive)
-    df_active = df_DRS[active]  # Active tanker vessels in dataframe
-    allShips = pd.DataFrame(df_active['ship_name'].unique())  # For using in graph
-    df_active = df_active[df_active.ext_dt != '']  # remove rows with no ext date
-    df_active['ext_dt'] = pd.to_datetime(df_active['ext_dt'], format='%Y-%m-%d',
-                                         errors='coerce')  # Convert date as str to datetime
-    df_active = df_active.query('status in ("OPEN")')  # get open items
-    mask = (df_active['ext_dt'] < pd.to_datetime('today'))  # ext date is before today
-    df_active = df_active.loc[mask]
+    flt_active = df_openDRS['vsl_imo'].isin(imoactive)
+    df_active = df_openDRS[flt_active]  # Active tanker vessels in dataframe
 
+    allShips = pd.DataFrame(df_active['ship_name'].unique())  # For using in graph
+    toCorrect = ['dt_ocurred', 'ext_dt', 'target_dt', 'final_action_ship_dt', 'done_dt', 'update_dt']
+    for someCol in toCorrect:
+        df_active[someCol] = pd.to_datetime(df_active[someCol]).apply(lambda x: x.date())
+        # convert str to date
+#-------------logic for overdue (today > target and today > ext)
+    mask = (pd.to_datetime('today')>df_active['target_dt'])  & (pd.to_datetime('today')>df_active['ext_dt']) # ext date is before
+    df_active = df_active.loc[mask]
+#-------------------------------------------------------------------
     uniqShips = list(df_active['ship_name'].unique())  # get list of unique ships from DB
     fltList = {'All vessels': uniqShips,
                'Tanker1': sorted(
