@@ -1,16 +1,19 @@
-# This is a sample Python script.
+import streamlit as st
+st.set_page_config(page_title='DR Sender', layout='wide')
+from GetNewDRS import make_NewDRS
+from filter_Data import filtered_Data
+from UploadDRS import upload_drs
+from Dashboard_drs import dashboard
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+sb_sel = st.sidebar.radio('Select Page',options=['View/Filter Data','Download DR sender','Upload DR sender', 'Dashboard(In progress)'])
+
+if sb_sel == 'Download DR sender':
+    make_NewDRS()
+if sb_sel == 'View/Filter Data':
+    filtered_Data()
+if sb_sel=='Upload DR sender':
+    upload_drs()
+if sb_sel=='Dashboard(In progress)':
+    dashboard()
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
