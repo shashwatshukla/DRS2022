@@ -72,12 +72,12 @@ def dashboard():
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2 = filterContainer.columns(2)
     with col1:
-        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default='Tanker1')
+        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default='All vessels')
 
         with filterContainer:
             vslListPerFlt = sum([fltList[x] for x in fltName],
                                 [])  # get vsl names as per flt selected and flatten the list (sum)
-            vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
+            vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt))
             # df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
             # st.write(df_sel_vsl_counts)
             # fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
@@ -94,7 +94,7 @@ def dashboard():
             gb = GridOptionsBuilder.from_dataframe(df_active)
             # gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsChildren=True,
             # groupSelectsFiltered=True)
-            gb.configure_pagination()
+            #gb.configure_pagination()
             gb.configure_side_bar()
             gb.configure_default_column(groupable=False, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
@@ -122,8 +122,11 @@ def dashboard():
             data2 = df_active['ext_rsn'].value_counts()
             df_graph = pd.DataFrame({'ship_name': data.index,
                                      'Count': data.values})  # create dataframe of ship name and count of open overdue def
-            df_xaxis = allShips.append(df_graph)  # merge dataframes to include ships with no overdue def
-            st.write(df_xaxis)
+            df_xaxis = pd.merge(allShips,df_graph,how='outer',on='ship_name')# merge dataframes to include ships with no overdue def
+            df_xaxis=df_xaxis.fillna(0)
+            df_xaxis['Count']=df_xaxis['Count_x']+df_xaxis['Count_y']
+            df_xaxis.drop(['Count_x','Count_y'],axis=1,inplace=True)
+
             df_xaxis.sort_values(by='ship_name')  # sort
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
