@@ -5,14 +5,15 @@ import pandas as pd
 import sqlite3 as sq
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
-
+import os
 
 def dashboard():
     global allShips  # to hold list of all tanker shipnames for making graphs
-    db = 'mms_master.sqlite'
+    db = r'database/mms_master.sqlite'
     # ___________________________Declarations_____________________________
-    disp_cols = ['ship_name','dt_ocurred', 'target_dt','ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval', 'ser_no',
-                  'req_num', 'est_cause_ship',
+    disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
+                 'ser_no',
+                 'req_num', 'est_cause_ship',
                  'init_action_ship', 'init_action_ship_dt',
                  'final_action_ship', 'final_action_ship_dt', 'corr_action', 'rpt_by', 'insp_by',
                  'insp_detail',
@@ -22,7 +23,8 @@ def dashboard():
     conn = sq.connect(db)
     df_openDRS = pd.read_sql_query("select * from drsend where status='OPEN'", conn)  # get DR sender data
     df_vsl = pd.read_sql_query(
-        "select vslName, vslCode, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1'",conn)  # Get active tanker fleet vessel names and IMO
+        "select vslName, vslCode, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1'",
+        conn)  # Get active tanker fleet vessel names and IMO
     df_SI = pd.read_sql_query("select SI_UID, siEmail from si where statusActiveInactive = '1'", conn)  # Get active SI
 
     # _________________Data cleaning_________________________
@@ -36,15 +38,16 @@ def dashboard():
     df_active = df_openDRS[flt_active]  # Active tanker vessels in dataframe
 
     allShips = pd.DataFrame(df_active['ship_name'].unique())  # For using in graph
-    allshipCode = dict(zip(df_vsl.vslName,df_vsl.vslCode))
+    allshipCode = dict(zip(df_vsl.vslName, df_vsl.vslCode))
+    allshipCode["Centennial Sapporo"]="CSA"
     toCorrect = ['dt_ocurred', 'ext_dt', 'target_dt', 'final_action_ship_dt', 'done_dt', 'update_dt']
     for someCol in toCorrect:
         df_active[someCol] = pd.to_datetime(df_active[someCol]).apply(lambda x: x.date())
         # convert str to date
-#-------------logic for overdue (today > target and today > ext)
-    mask = (pd.to_datetime('today')>df_active['target_dt'])  & (pd.to_datetime('today')>df_active['ext_dt']) # ext date is before
+    # -------------logic for overdue (today > target and today > ext)
+    mask = (pd.to_datetime('today') > df_active['target_dt']) & (pd.to_datetime('today') > df_active['ext_dt'])  # ext date is before
     df_active = df_active.loc[mask]
-#-------------------------------------------------------------------
+    # -------------------------------------------------------------------
     uniqShips = list(df_active['ship_name'].unique())  # get list of unique ships from DB
     fltList = {'All vessels': uniqShips,
                'Tanker1': sorted(
@@ -69,7 +72,8 @@ def dashboard():
     # ____________________AGgrid_________________
 
     grid_height = st.sidebar.number_input("Grid height", min_value=200, max_value=800, value=300)
-    grid_theme = st.sidebar.selectbox('Grid theme', options=['streamlit','light', 'dark', 'blue', 'fresh', 'material'], index=0)
+    grid_theme = st.sidebar.selectbox('Grid theme', options=['streamlit', 'light', 'dark', 'blue', 'fresh', 'material'],
+                                      index=0)
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2 = filterContainer.columns(2)
     with col1:
@@ -95,7 +99,7 @@ def dashboard():
             gb = GridOptionsBuilder.from_dataframe(df_active)
             # gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsChildren=True,
             # groupSelectsFiltered=True)
-            #gb.configure_pagination()
+            # gb.configure_pagination()
             gb.configure_side_bar()
             gb.configure_default_column(groupable=False, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
@@ -123,13 +127,14 @@ def dashboard():
             data2 = df_active['ext_rsn'].value_counts()
             df_graph = pd.DataFrame({'ship_name': data.index,
                                      'Count': data.values})  # create dataframe of ship name and count of open overdue def
-            df_xaxis = pd.merge(allShips,df_graph,how='outer',on='ship_name')# merge dataframes to include ships with no overdue def
-            df_xaxis=df_xaxis.fillna(0)
-            df_xaxis['Count']=df_xaxis['Count_x']+df_xaxis['Count_y']
-            df_xaxis.drop(['Count_x','Count_y'],axis=1,inplace=True)
+            df_xaxis = pd.merge(allShips, df_graph, how='outer',
+                                on='ship_name')  # merge dataframes to include ships with no overdue def
+            df_xaxis = df_xaxis.fillna(0)
+            df_xaxis['Count'] = df_xaxis['Count_x'] + df_xaxis['Count_y']
+            df_xaxis.drop(['Count_x', 'Count_y'], axis=1, inplace=True)
 
             df_xaxis.sort_values(by='ship_name')  # sort
-            df_xaxis=df_xaxis.replace({'ship_name':allshipCode})
+            df_xaxis = df_xaxis.replace({'ship_name': allshipCode})
 
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
@@ -143,11 +148,11 @@ def dashboard():
             fig.update_layout(legend_orientation='h')
             fig.update_xaxes(categoryorder='array',
                              categoryarray=sorted(df_xaxis['ship_name']))
-            fig2.update_layout(legend_orientation='h')
+            #fig2.update_layout(legend_orientation='h')
             fig2.update_layout()
             st.plotly_chart(fig)
             st.plotly_chart(fig2)
-            # fig3 = px.colors.sequential.swatches()
+            fig3 = px.colors.sequential.swatches()
             # fig4 = px.colors.qualitative.swatches()
-            # st.plotly_chart(fig3)
+            st.plotly_chart(fig3)
             # st.plotly_chart(fig4)
