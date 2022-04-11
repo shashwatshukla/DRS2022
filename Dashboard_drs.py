@@ -22,7 +22,7 @@ def dashboard():
     conn = sq.connect(db)
     df_openDRS = pd.read_sql_query("select * from drsend where status='OPEN'", conn)  # get DR sender data
     df_vsl = pd.read_sql_query(
-        "select vslName, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1'",conn)  # Get active tanker fleet vessel names and IMO
+        "select vslName, vslCode, vsl_imo, vslTechSI, vslMarSI from vessels where statusActiveInactive = '1'",conn)  # Get active tanker fleet vessel names and IMO
     df_SI = pd.read_sql_query("select SI_UID, siEmail from si where statusActiveInactive = '1'", conn)  # Get active SI
 
     # _________________Data cleaning_________________________
@@ -36,6 +36,7 @@ def dashboard():
     df_active = df_openDRS[flt_active]  # Active tanker vessels in dataframe
 
     allShips = pd.DataFrame(df_active['ship_name'].unique())  # For using in graph
+    allshipCode = dict(zip(df_vsl.vslName,df_vsl.vslCode))
     toCorrect = ['dt_ocurred', 'ext_dt', 'target_dt', 'final_action_ship_dt', 'done_dt', 'update_dt']
     for someCol in toCorrect:
         df_active[someCol] = pd.to_datetime(df_active[someCol]).apply(lambda x: x.date())
@@ -68,7 +69,7 @@ def dashboard():
     # ____________________AGgrid_________________
 
     grid_height = st.sidebar.number_input("Grid height", min_value=200, max_value=800, value=300)
-
+    grid_theme = st.sidebar.selectbox('Grid theme', options=['streamlit','light', 'dark', 'blue', 'fresh', 'material'], index=0)
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2 = filterContainer.columns(2)
     with col1:
@@ -96,6 +97,8 @@ def dashboard():
             # groupSelectsFiltered=True)
             #gb.configure_pagination()
             gb.configure_side_bar()
+
+
             gb.configure_default_column(groupable=False, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
             gridOptions = gb.build()
@@ -103,7 +106,7 @@ def dashboard():
 
             response = AgGrid(df_active, editable=True, fit_columns_on_grid_load=False, conversion_errors='coerce',
                               gridOptions=gridOptions, enable_enterprise_modules=True,
-                              height=grid_height)
+                              height=grid_height, theme=grid_theme)
             # st.write("data")
 
             # st.write(df_active[disp_cols], height=600)
@@ -128,16 +131,18 @@ def dashboard():
             df_xaxis.drop(['Count_x','Count_y'],axis=1,inplace=True)
 
             df_xaxis.sort_values(by='ship_name')  # sort
+            df_xaxis=df_xaxis.replace({'ship_name':allshipCode})
+
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
                          title="<b>Count of extended overdue not closed till today</b>",
-                         color_continuous_scale=px.colors.sequential.Burg)
+                         color_continuous_scale=px.colors.sequential.Agsunset)
             fig2 = px.bar(df_active, y=["ship_name"], x="ext_rsn", height=500, width=1200, color='ext_rsn',
                           title="<b>Reason for Extended overdue not closed till today</b>",
                           color_discrete_sequence=px.colors.qualitative.Pastel)
             fig.update_layout(legend_orientation='h')
             fig.update_xaxes(categoryorder='array',
-                             categoryarray=sorted(allShips['ship_name']))
+                             categoryarray=sorted(df_xaxis['ship_name']))
             fig2.update_layout(legend_orientation='h')
             fig2.update_layout()
             st.plotly_chart(fig)
