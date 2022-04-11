@@ -20,7 +20,7 @@ def filtered_Data():
     #                               "SUM (CASE WHEN status= 'No' then 1 ELSE 0 END) as 'OK' "
     #                               "from drsend GROUP by ship_name", conn)
     conn.close()
-    conn = sqlite3.connect('database/mms_master.sqlite')
+    conn = sqlite3.connect(r'database/mms_master.sqlite')
     dfvslMaster = pd.read_sql_query(
         'select vslName, vsl_imo, vslCode, vslFleet, cast(statusActiveInactive as text) from vessels', conn)
     dffltMaster = pd.read_sql_query('select fltNameUID, fltMainName, fltLocalName from fleet', conn)
