@@ -4,7 +4,7 @@ import sqlite3
 
 
 def upload_drs():
-    df = get_data('mms_master.sqlite', 'drsend')
+    df = get_data(r'database/mms_master.sqlite', 'drsend')
     drsHeaders = df.columns.values
     uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
     if uploaded_file is not None:
@@ -30,7 +30,7 @@ def upload_drs():
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
 
-            conn = sqlite3.connect('new.sqlite')  # write complete df to new database for check
+            conn = sqlite3.connect(r'database/new.sqlite')  # write complete df to new database for check
             dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False)
             conn.close()
         else:
