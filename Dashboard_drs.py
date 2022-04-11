@@ -97,8 +97,6 @@ def dashboard():
             # groupSelectsFiltered=True)
             #gb.configure_pagination()
             gb.configure_side_bar()
-
-
             gb.configure_default_column(groupable=False, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
 
             gridOptions = gb.build()
@@ -136,7 +134,9 @@ def dashboard():
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
                          title="<b>Count of extended overdue not closed till today</b>",
-                         color_continuous_scale=px.colors.sequential.Agsunset)
+                         color_discrete_sequence=px.colors.qualitative.Pastel)
+            # color_continuous_scale=px.colors.sequential.Burg)
+
             fig2 = px.bar(df_active, y=["ship_name"], x="ext_rsn", height=500, width=1200, color='ext_rsn',
                           title="<b>Reason for Extended overdue not closed till today</b>",
                           color_discrete_sequence=px.colors.qualitative.Pastel)
