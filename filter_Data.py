@@ -1,6 +1,6 @@
-import pandas as pd, sqlite3, shutil, datetime, streamlit as st
+import pandas as pd, sqlite3, datetime, streamlit as st
 
-import plotly.express as px
+
 
 
 def filtered_Data():
