@@ -18,8 +18,22 @@ def upload_drs():
             st.markdown(f'Raw data from Vessel: \n{vsldfShape[0]} Records found in {filename}, '
                         f'(in {vsldfShape[1]} Columns)')
             dfVslDrs.columns = drsHeaders  # rename the headers for Vessel file, same as master db
-            toCorrect = ['dt_ocurred', 'init_action_ship_dt', 'target_dt', 'final_action_ship_dt', 'done_dt',
-                         'update_dt']
+            toCorrect = [
+                "dt_ocurred",
+                "init_action_ship_dt",
+                "target_dt",
+                "final_action_ship_dt",
+                "done_dt",
+                "update_dt",
+                "ext_dt",
+                "PSC_picdt",
+                "PSC_info2ownr_dt",
+                "PSC_info2chrtr_dt",
+                "PSC_info2rtshp_dt",
+                "PSC_info2oilmaj_dt",
+                "PSC_info2mmstpmgmt_dt",
+                "PSC_sndr_offimport_dt"
+            ]
             for someCol in toCorrect:
                 dfVslDrs[someCol] = pd.to_datetime(dfVslDrs[someCol]).apply(lambda x: x.date())
                 # convert long datetime to date
@@ -28,7 +42,7 @@ def upload_drs():
             st.write(len(df[df['DRS_ID'].isin(drsID)]), "common items found and updated with latest info.", )
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
-            dfdtype = get_data(r'database/mms_master.sqlite', 'drs_schema')
+            dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
             drs_schema=dict(zip(dfdtype.col_name, dfdtype.d_type))
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
             dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
