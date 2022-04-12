@@ -4,7 +4,7 @@ import streamlit as st
 import sqlite3
 
 #@st.cache (allow_output_mutation=True)
-@st.experimental_memo
+#experimental memo@st.experimental_memo
 def get_data(db, tbl):
     conn = sqlite3.connect(db)
     df_data = pd.read_sql_query(f'select * from {tbl}', conn)
