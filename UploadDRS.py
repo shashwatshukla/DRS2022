@@ -38,8 +38,9 @@ def upload_drs():
                 dfVslDrs[someCol] = pd.to_datetime(dfVslDrs[someCol]).apply(lambda x: x.date())
                 # convert long datetime to date
             drsID = dfVslDrs["DRS_ID"].tolist()  # get list of DRS_ID for checking new data
+            newRecords=dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])]
             dfNoCommon = df[~df['DRS_ID'].isin(drsID)]  # filter OUT all rows with common DRS_ID
-            st.write(len(df[df['DRS_ID'].isin(drsID)]), "common items found and updated with latest info.", )
+            st.write(len(df[df['DRS_ID'].isin(drsID)]), f"old records and {len(newRecords)} new records uploaded with latest info.", )
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
             dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
