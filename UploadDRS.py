@@ -24,20 +24,12 @@ def upload_drs():
                 dfVslDrs[someCol] = pd.to_datetime(dfVslDrs[someCol]).apply(lambda x: x.date())
                 # convert long datetime to date
             drsID = dfVslDrs["DRS_ID"].tolist()  # get list of DRS_ID for checking new data
-            print(drsID)
             dfNoCommon = df[~df['DRS_ID'].isin(drsID)]  # filter OUT all rows with common DRS_ID
             st.write(len(df[df['DRS_ID'].isin(drsID)]), "common items found and updated with latest info.", )
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
-            st.write(dfUpdated.dtypes)
             dfdtype = get_data(r'database/mms_master.sqlite', 'drs_schema')
             drs_schema=dict(zip(dfdtype.col_name, dfdtype.d_type))
-
-            conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
-            dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
-            dfdtype = get_data(r'database/mms_master.sqlite', 'drs_schema')
-            drs_schema=dict(zip(dfdtype.col_name, dfdtype.d_type))
-
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
             dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
             conn.close()
