@@ -43,7 +43,7 @@ def upload_drs():
             st.write(len(df[df['DRS_ID'].isin(drsID)]), f"old records and {len(newRecords)} new records uploaded with latest info.", )
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
-            dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
+            dfdtype = get_data(r'database/mms_master.sqlite', 'drs_schema')
             drs_schema=dict(zip(dfdtype.col_name, dfdtype.d_type))
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
             dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
