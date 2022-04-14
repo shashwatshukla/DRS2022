@@ -24,4 +24,5 @@ if(mailid in allmailid):
         upload_drs()
     if sb_sel == 'Dashboard(In progress)':
         dashboard()
-
+else:
+    st.warning('User not found!')
