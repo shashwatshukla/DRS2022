@@ -41,13 +41,30 @@ def upload_drs():
             drsID = dfVslDrs["DRS_ID"].tolist()  # get list of DRS_ID for checking new data
             newRecords=dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])]
             dfNoCommon = df[~df['DRS_ID'].isin(drsID)]  # filter OUT all rows with common DRS_ID
-            st.write(len(df[df['DRS_ID'].isin(drsID)]), f"old records and {len(newRecords)} new records uploaded with latest info.", )
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
             dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
-            drs_schema=dict(zip(dfdtype.col_name, dfdtype.d_type))
+            drs_schema = dict(zip(dfdtype.col_name, dfdtype.d_type))
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
-            dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
+#---Check and remove entries with the word delete in serial number---------------------------------------------------------
+            dtete_exists=(dfUpdated['ser_no'].str.contains('delete', case=False)).any()
+            if dtete_exists:
+                df = get_data(r'database/mms_master.sqlite', 'drsend')
+                new_records = len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
+                old_records=len(dfVslDrs)-len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
+                df_deleted = dfUpdated.loc[dfUpdated['ser_no'].str.contains('delete', case=False)]
+                dfUpdated = dfUpdated.loc[~dfUpdated['ser_no'].str.contains('delete', case=False)]
+                st.info('Following DR sender items will be deleted from the database. Do you wish to continue?')
+                delete_btn=st.button('Upload and delete')
+                st.write(df_deleted)
+                if delete_btn:
+                    dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
+                    df_deleted.to_sql('drsend_deleted', conn, if_exists='replace', index=False, dtype=drs_schema)
+                    deleted_record=len(df_deleted)
+                    st.info(f"{old_records} old records and {new_records} new records uploaded with latest info.\n {deleted_record} record deleted from database")
+            else:
+                dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
+                st.info(str(len(df[df['DRS_ID'].isin(drsID)])) + f" old records and {len(newRecords)} new records uploaded with latest info." )
             conn.close()
         else:
             st.warning('Uploaded File is not a valid DR Sender file. \nPlease try again!')
