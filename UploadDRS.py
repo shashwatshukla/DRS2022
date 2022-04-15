@@ -64,6 +64,7 @@ def upload_drs():
                     st.write(df_deleted)
                     if delete_btn:
                         dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
+                        df_deleted['update_by']=df_deleted.loc[:,'update_by']= st.session_state.id
                         df_deleted.to_sql('drsend_deleted', conn, if_exists='replace', index=False, dtype=drs_schema)
                         deleted_record=len(df_deleted)
                         st.info(f"{old_records} old records and {new_records} new records uploaded with latest info.\n {deleted_record} record deleted from database")
