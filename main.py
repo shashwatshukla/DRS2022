@@ -25,4 +25,4 @@ if(mailid in allmailid):
     if sb_sel == 'Dashboard(In progress)':
         dashboard()
 else:
-    st.warning('User not found!')
+    st.info('Mail id not found please contact tech support team')
