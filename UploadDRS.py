@@ -47,6 +47,7 @@ def upload_drs():
             drs_schema = dict(zip(dfdtype.col_name, dfdtype.d_type))
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
 
+
 #---Check and remove entries with the word delete in serial number---------------------------------------------------------
 
             dtete_exists=(dfUpdated['ser_no'].str.contains('delete', case=False)).any()
