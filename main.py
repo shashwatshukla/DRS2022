@@ -9,7 +9,7 @@ conn=sq.connect(r'database/mms_master.sqlite')
 df_mailid=pd.read_sql_query('select siEmail from si', conn)
 conn.close()
 col1, col2,col3=st.columns(3)
-with col1:
+with col3:
     mailid = st.text_input("Please enter your MMS mail id to continue")
 allmailid = df_mailid['siEmail'].tolist()
 if(mailid in allmailid):
@@ -25,4 +25,4 @@ if(mailid in allmailid):
     if sb_sel == 'Dashboard(In progress)':
         dashboard()
 else:
-    st.info('Mail id not found please contact tech support team')
+    st.info('User not found please contact tech support team')

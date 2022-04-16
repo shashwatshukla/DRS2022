@@ -4,10 +4,12 @@ import sqlite3
 
 
 def upload_drs():
+    upldcol1,upldcol2,upldcol3=st.columns(3)
 
     df = get_data(r'database/mms_master.sqlite', 'drsend')
     drsHeaders = df.columns.values
-    uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
+    with upldcol1:
+        uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
     if uploaded_file is not None:
         dfVslDrs = pd.read_excel(uploaded_file, sheet_name='DRSEND', skiprows=6, dtype=str,
                                  na_filter=False, parse_dates=False, usecols='A:CV')
@@ -66,6 +68,7 @@ def upload_drs():
                     deleted_record=len(df_deleted)
                     st.info(f"{old_records} old records and {new_records} new records uploaded with latest info.\n {deleted_record} record deleted from database")
             else:
+                st.
                 dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
                 st.info(str(len(df[df['DRS_ID'].isin(drsID)])) + f" old records and {len(newRecords)} new records uploaded with latest info." )
             conn.close()
