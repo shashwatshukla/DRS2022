@@ -13,10 +13,14 @@ def get_data(db, tbl):
     #     .apply(pd.to_numeric, errors='coerce', axis=1)  # make the three cols numeric
     return df_data
 
-def save_data(df,db,tbl):
+def save_data(df,db,tbl,lookup_key):
     # Create your connection.
     conn = sqlite3.connect(db)
-    df.to_sql(name=tbl, con=conn, if_exists='replace',index=False)
+    dfDB= pd.read_sql_query(f'select * from {tbl}', conn)
+    idkeys=df[lookup_key].tolist()
+    dfnotCommon=dfDB[~dfDB[lookup_key].isin(idkeys)]
+    dfUpdated = pd.concat([dfnotCommon, df])
+    dfUpdated.to_sql(name=tbl, con=conn, if_exists='replace',index=False)
     conn.close()
 
 # @st.cache (allow_output_mutation=True)

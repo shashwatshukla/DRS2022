@@ -11,8 +11,8 @@ conn.close()
 col1, col2,col3=st.columns(3)
 with col3:
     mailid = st.text_input("Please enter your MMS email to continue")
-    if 'id' not in st.session_state:
-        st.session_state.id = mailid
+#if 'id' not in st.session_state:
+st.session_state.id = mailid
 allmailid = df_mailid['siEmail'].tolist()
 if(mailid in allmailid):
 

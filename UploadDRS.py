@@ -1,8 +1,7 @@
 import streamlit as st, pandas as pd
-from load_Data import get_data
+from load_Data import get_data, save_data
 import sqlite3
-class goto1(Exception):
-    pass
+
 def upload_drs():
     upldcol1,upldcol2,upldcol3=st.columns(3)
 
@@ -17,10 +16,12 @@ def upload_drs():
         filename = uploaded_file.name
         if dfVslDrs.iloc[-1, 0] == "ZZZ":  # (last line, 1st col) implemented crude check for a valid DRS file
             dfVslDrs.drop(dfVslDrs.index[-1], inplace=True)  # drop the last row - with ZZZ
+
             vsldfShape = dfVslDrs.shape
             st.markdown(f'Raw data from Vessel: \n{vsldfShape[0]} Records found in {filename}, '
                         f'(in {vsldfShape[1]} Columns)')
             dfVslDrs.columns = drsHeaders  # rename the headers for Vessel file, same as master db
+            dfVslDrs['dummy2'] = str(pd.datetime.now())+" by "+st.session_state.id
             toCorrect = ["dt_ocurred", "init_action_ship_dt", "target_dt", "final_action_ship_dt", "done_dt",
                 "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
                 "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]
@@ -35,16 +36,15 @@ def upload_drs():
             dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
             drs_schema = dict(zip(dfdtype.col_name, dfdtype.d_type))
             conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
-            drsHeaders = df.columns
 
-            #---Check and remove entries with the word delete in serial number---------------------------------------------------------
+
+            #---Check and remove entries with the word <delete> in co_eval ---------------------------------------------------------
 
             delete_exists = (dfUpdated['co_eval'].str.contains('<delete>', case=False)).any() # Check if <delete> exists in any row in uploaded
-            # if delete_exists:
-            # df = get_data(r'database/mms_master.sqlite', 'drsend')
             new_records = len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
             old_records = len(dfVslDrs)-len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
             df_deleted = dfUpdated.loc[dfUpdated['co_eval'].str.contains('<delete>', case=False)]
+            df_deleted['dummy2']=str(pd.datetime.now())+" by "+st.session_state.id
             dfUpdated = dfUpdated.loc[~dfUpdated['co_eval'].str.contains('<delete>', case=False)]
             if delete_exists:
                 st.info('Following Rows will be deleted from the database. Do you wish to continue?')
@@ -54,7 +54,8 @@ def upload_drs():
             if update_btn:
                 dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
                 # Todo run query for updating the drsend_deleted tbl with new entries
-                df_deleted.to_sql('drsend_deleted', conn, if_exists='append', index=False, dtype=drs_schema)
+                if delete_exists:
+                    save_data(df_deleted,r'database/mms_master.sqlite','drsend_deleted','DRS_ID')
                 deleted_record = len(df_deleted)
                 st.info(f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
             if cancel_btn:
