@@ -21,22 +21,9 @@ def upload_drs():
             st.markdown(f'Raw data from Vessel: \n{vsldfShape[0]} Records found in {filename}, '
                         f'(in {vsldfShape[1]} Columns)')
             dfVslDrs.columns = drsHeaders  # rename the headers for Vessel file, same as master db
-            toCorrect = [
-                "dt_ocurred",
-                "init_action_ship_dt",
-                "target_dt",
-                "final_action_ship_dt",
-                "done_dt",
-                "update_dt",
-                "ext_dt",
-                "PSC_picdt",
-                "PSC_info2ownr_dt",
-                "PSC_info2chrtr_dt",
-                "PSC_info2rtshp_dt",
-                "PSC_info2oilmaj_dt",
-                "PSC_info2mmstpmgmt_dt",
-                "PSC_sndr_offimport_dt"
-            ]
+            toCorrect = ["dt_ocurred", "init_action_ship_dt", "target_dt", "final_action_ship_dt", "done_dt",
+                "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
+                "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]
             for someCol in toCorrect:
                 dfVslDrs[someCol] = pd.to_datetime(dfVslDrs[someCol]).apply(lambda x: x.date())
                 # convert long datetime to date
