@@ -53,6 +53,7 @@ def upload_drs():
                 #---Check and remove entries with the word delete in serial number---------------------------------------------------------
 
                 delete_exists=(dfUpdated['ser_no'].str.contains('delete', case=False)).any()
+
                 if delete_exists:
                     df = get_data(r'database/mms_master.sqlite', 'drsend')
                     new_records = len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
