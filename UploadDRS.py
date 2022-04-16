@@ -50,9 +50,7 @@ def upload_drs():
                 conn = sqlite3.connect(r'database/mms_master.sqlite')  # write complete df to new database for check
                 drsHeaders = df.columns
 
-
-
-#---Check and remove entries with the word delete in serial number---------------------------------------------------------
+                #---Check and remove entries with the word delete in serial number---------------------------------------------------------
 
                 delete_exists=(dfUpdated['ser_no'].str.contains('delete', case=False)).any()
                 if delete_exists:
@@ -79,4 +77,4 @@ def upload_drs():
                         st.info(str(len(df[df['DRS_ID'].isin(drsID)])) + f" old records and {len(newRecords)} new records uploaded with latest info." )
                 conn.close()
             else:
-                st.warning('Uploaded File is not a valid DR Sender file. \nPlease try again!')
+                st.warning('Uploaded File is not a valid DR Sender file. Please try again!')
