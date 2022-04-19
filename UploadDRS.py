@@ -53,7 +53,7 @@ def upload_drs():
             cancel_btn = st.button('Cancel')
             if update_btn:
                 dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
-                # Todo run query for updating the drsend_deleted tbl with new entries
+                # done run query for updating the drsend_deleted tbl with new entries
                 if delete_exists:
                     save_data(df_deleted,r'database/mms_master.sqlite','drsend_deleted','DRS_ID')
                 deleted_record = len(df_deleted)

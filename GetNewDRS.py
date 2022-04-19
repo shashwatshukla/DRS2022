@@ -41,7 +41,7 @@ def make_NewDRS():
         f"('{curr_year}') or status.str.contains('OPEN'))", engine='python')
 
     numberOfRows = len(df_currDRS)
-    filename = r'_DRS V55.xlsm'  #
+    filename = r'_DRS V56.xlsm'  #
     book = xw.Book(filename, password='mms@user')  # Get template file
     ws = book.sheets['DRSEND']
     app = xw.apps.active

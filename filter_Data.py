@@ -138,3 +138,7 @@ def filtered_Data():
         csv = df.to_csv().encode('utf-8')  # write df to csv
         btnMsg = 'Download ALL Records as CSV'
         st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+    with st.expander("Report Generator"):
+        col1,col2,col3=st.columns(3)
+        with col1:
+            st.date_input("Select dates")
