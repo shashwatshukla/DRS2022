@@ -4,6 +4,10 @@ from load_Data import get_data
 import sqlite3
 df_drsend = get_data(r'database/mms_master.sqlite','drsend')
 df_vessel = get_data(r'database/mms_master.sqlite','vessels')
+df_fleet = get_data(r'database/mms_master.sqlite','fleet')
+fleetNames = df_fleet[['fltNameUID','fltLocalName']]
+st.write(fleetNames)
+
 df_merged = pd.merge(df_drsend,df_vessel[['vsl_imo','statusActiveInactive','vslFleet']], on = 'vsl_imo',how = 'left') # brig col from vessel to drsend dataframe
 df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace = True)
 # df_nan = df_merged[df_merged['statusActiveInactive'].isna()] # chceck ships status not listed in DB
@@ -17,5 +21,6 @@ st.write(df_merged)
 #st.write(missingfleet)
 #m = df_merged['vslFleet']=='1'
 #tanker1=df_merged['ship_name'].mask(m).dropna().unique()
-tanker1={"Tanker 1":[df_merged.loc[df_merged['vslFleet'] == '1','ship_name'].unique()]}# and so on.....
+fleetName = {'Tanker 1':1, 'Tanker 2: SG':2, }
+tanker1={"Tanker 1":[df_merged.loc[df_merged['vslFleet'] == '1','ship_name'].unique()]} # and so on.....
 st.write(tanker1)
