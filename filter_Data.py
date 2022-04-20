@@ -1,7 +1,4 @@
-import pandas as pd, sqlite3, datetime, streamlit as st
-
-
-
+import pandas as pd, sqlite3, datetime, streamlit as st, plotly_express as px
 
 def filtered_Data():
     df = []
@@ -88,8 +85,8 @@ def filtered_Data():
         vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
         # st.write(df_sel_vsl_counts)
-        # fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
-        # st.plotly_chart(fig)
+        fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
+        st.plotly_chart(fig)
 
     with col3:
         criticalEq = st.multiselect('Critical Equipment', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
