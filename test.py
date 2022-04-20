@@ -5,8 +5,16 @@ import sqlite3
 df_drsend = get_data(r'database/mms_master.sqlite','drsend')
 df_vessel = get_data(r'database/mms_master.sqlite','vessels')
 df_fleet = get_data(r'database/mms_master.sqlite','fleet')
-fleetNames = df_fleet[['fltNameUID','fltLocalName']]
-st.write(fleetNames)
+
+flt_no = list(df_fleet['fltNameUID'])
+flt_name = list(df_fleet['fltLocalName'])
+for e_no, e_name in zip(flt_no,flt_name):
+    print(e_no, e_name)
+
+st.write(flt_no)
+st.write(flt_name)
+
+
 
 df_merged = pd.merge(df_drsend,df_vessel[['vsl_imo','statusActiveInactive','vslFleet']], on = 'vsl_imo',how = 'left') # brig col from vessel to drsend dataframe
 df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace = True)
@@ -22,5 +30,6 @@ st.write(df_merged)
 #m = df_merged['vslFleet']=='1'
 #tanker1=df_merged['ship_name'].mask(m).dropna().unique()
 fleetName = {'Tanker 1':1, 'Tanker 2: SG':2, }
+
 tanker1={"Tanker 1":[df_merged.loc[df_merged['vslFleet'] == '1','ship_name'].unique()]} # and so on.....
 st.write(tanker1)
