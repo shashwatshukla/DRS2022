@@ -1,11 +1,10 @@
-import datetime
 import plotly.express as px
 import streamlit as st
 import pandas as pd
 import sqlite3 as sq
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
-import os
+from load_Data import get_data
 
 def dashboard():
     global allShips  # to hold list of all tanker shipnames for making graphs
@@ -40,7 +39,9 @@ def dashboard():
     allShips = pd.DataFrame(df_active['ship_name'].unique())  # For using in graph
     allshipCode = dict(zip(df_vsl.vslName, df_vsl.vslCode))
     allshipCode["Centennial Sapporo"]="CSA"
-    toCorrect = ['dt_ocurred', 'ext_dt', 'target_dt', 'final_action_ship_dt', 'done_dt', 'update_dt']
+    toCorrect = ["dt_ocurred", "init_action_ship_dt", "target_dt", "final_action_ship_dt", "done_dt",
+                 "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
+                 "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]
     for someCol in toCorrect:
         df_active[someCol] = pd.to_datetime(df_active[someCol]).apply(lambda x: x.date())
         # convert str to date
@@ -156,3 +157,17 @@ def dashboard():
             # fig4 = px.colors.qualitative.swatches()
             #st.plotly_chart(fig3)
             # st.plotly_chart(fig4)
+    with st.expander("DAS analysis"):
+        col1,col2,col3=st.columns(3)
+        with col1:
+            st.date_input("Select dates")
+        dfraw=get_data(r'database/mms_master.sqlite','drsend')
+        st.write(dfraw)
+
+        toCorrect = ["dt_ocurred"]
+        for someCol in toCorrect:
+            dfraw[someCol] = pd.to_datetime(dfraw[someCol]).apply(lambda x: x.date())
+        date_group=dfraw.groupby(dfraw['dt_ocurred'].map(lambda x: x.year))
+        for name,group in date_group:
+            st.write(name)
+            st.write(group.shape[0])

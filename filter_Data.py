@@ -1,5 +1,6 @@
-import pandas as pd, sqlite3, datetime, streamlit as st, plotly_express as px
-
+import pandas as pd, sqlite3, datetime, streamlit as st
+import plotly.express as px
+from load_Data import get_data
 def filtered_Data():
     df = []
     sql3db = r'database/mms_master.sqlite'  # destination db
@@ -35,7 +36,7 @@ def filtered_Data():
     # st.dataframe(drsHeaders)
 
     dfSelected = df[
-        ['ship_name', 'dt_ocurred', 'ser_no', 'def_code', 'rpt_by', 'insp_detail', 'nc_detail', 'init_action_ship',
+        ['ship_name','vsl_imo', 'dt_ocurred', 'ser_no', 'def_code', 'rpt_by', 'insp_detail', 'nc_detail', 'init_action_ship',
          'final_action_ship', 'reason_rc', 'co_eval', 'corr_action', 'target_dt', 'done_dt', 'status', 'delay_hr',
          'downtime_hr', 'Severity', 'overdue', 'ext_rsn', 'ext_dt', 'ext_cmnt', 'brkdn_tf', 'critical_eq_tf',
          'blackout_tf',
@@ -46,36 +47,51 @@ def filtered_Data():
     col1, col2, col3, col4 = filterContainer.columns(4)
 
     with col2:
-        uniqShips = list(dfSelected['ship_name'].unique())  # get list of unique ships from DB
-        fltList = {'All vessels': uniqShips,
-                   'Cargo': sorted(
-                       ['Luminous Ace', 'Siam Ocean', 'Ken San', 'Comet Ace', 'Ken Goh', 'Ken Ryu', 'Progress Ace',
-                        'Ken Mei', 'Paradise Ace', 'Ken Rei', 'Ken Toku', 'Southern Star', 'Andromeda Spirit',
-                        'Kariyushi Leader', 'Ken Hope', 'Morning Clara', 'Ocean Phoenix', 'Green Phoenix',
-                        'Pacific Hero', 'Glorious Ace', 'Global Phoenix', 'AM BREMEN', 'Coral Opal', 'Paraburdoo',
-                        'Bulk Phoenix', 'African Teist', 'Robin Wind', 'Andes Queen', 'Loch Shuna', 'Global Coral',
-                        'Blue Akihabara', 'Mi Harmony', 'Federal Tokoro', 'Santa Francesca', 'IVS Phoenix',
-                        'Loch Ness', 'Loch Nevis', 'Pavo Bright', 'GT DEMETER', 'Antares Leader', 'Aries Karin',
-                        'Aries Sumire', 'Ikan Bawal', 'Jubilant Devotion', 'Pavo Brave', 'Stardom Wave',
-                        'Vanguardia']),
-                   'Tanker1': sorted(
-                       ['Tokio', 'Taiga', 'Tsushima', 'BW Tokyo', 'BW Kyoto', 'Marvel Kite',
-                        'Takasago', 'Tenma', 'Esteem Astro', 'Esteem Explorer', 'Metahne Mickie Harper',
-                        'Methane Patricia Camila', 'Red Admiral']),
-                   'Tanker2 SMI': sorted(
-                       ['Ginga Hawk', 'Ginga Kite', 'Ginga Merlin', 'Centennial Misumi',
-                        'Centennial Matsuyama', 'Argent Daisy', 'Eagle Sapporo', 'Eagle Melbourne',
-                        'Challenge Prospect II', 'St Clemens', 'St Pauli', 'Esteem Houston',
-                        'Esteem Energy',
-                        'Esteem Discovery', 'Esteem Endeavour', 'Solar Katherine', 'Solar Melissa',
-                        'Solar Madelein', 'Solar Claire', 'Esteem Sango']),
-                   'Tanker2 SIN': sorted(['Hafnia Nordica',
-                                          'Peace Victoria', 'Orient Challenge', 'Orient Innovation', 'Crimson Jade',
-                                          'Crimson Pearl', 'Hafnia Hong Kong', 'Hafnia Shanghai', 'San Jack',
-                                          'Hafnia Shenzhen', 'HARRISBURG', 'Hafnia Nanjing'])
-                   }
+        df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
+        df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+        flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
 
-        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default='Tanker1')
+        df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
+                             how='left')  # brig col from vessel to drsend dataframe
+        df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace=True)
+        fltList = {
+            list(flt_list.keys())[i]: sorted(list(df_merged.loc[df_merged['vslFleet'] == str(list(flt_list.values())[i])
+            , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
+        uniqShips = list(dfSelected['ship_name'].unique())  # get list of unique ships from DB
+        fltList['All vessels']=uniqShips
+
+
+
+
+        # fltList = {'All vessels': uniqShips,
+        #            'Cargo': sorted(
+        #                ['Luminous Ace', 'Siam Ocean', 'Ken San', 'Comet Ace', 'Ken Goh', 'Ken Ryu', 'Progress Ace',
+        #                 'Ken Mei', 'Paradise Ace', 'Ken Rei', 'Ken Toku', 'Southern Star', 'Andromeda Spirit',
+        #                 'Kariyushi Leader', 'Ken Hope', 'Morning Clara', 'Ocean Phoenix', 'Green Phoenix',
+        #                 'Pacific Hero', 'Glorious Ace', 'Global Phoenix', 'AM BREMEN', 'Coral Opal', 'Paraburdoo',
+        #                 'Bulk Phoenix', 'African Teist', 'Robin Wind', 'Andes Queen', 'Loch Shuna', 'Global Coral',
+        #                 'Blue Akihabara', 'Mi Harmony', 'Federal Tokoro', 'Santa Francesca', 'IVS Phoenix',
+        #                 'Loch Ness', 'Loch Nevis', 'Pavo Bright', 'GT DEMETER', 'Antares Leader', 'Aries Karin',
+        #                 'Aries Sumire', 'Ikan Bawal', 'Jubilant Devotion', 'Pavo Brave', 'Stardom Wave',
+        #                 'Vanguardia']),
+        #            'Tanker1': sorted(
+        #                ['Tokio', 'Taiga', 'Tsushima', 'BW Tokyo', 'BW Kyoto', 'Marvel Kite',
+        #                 'Takasago', 'Tenma', 'Esteem Astro', 'Esteem Explorer', 'Metahne Mickie Harper',
+        #                 'Methane Patricia Camila', 'Red Admiral']),
+        #            'Tanker2 SMI': sorted(
+        #                ['Ginga Hawk', 'Ginga Kite', 'Ginga Merlin', 'Centennial Misumi',
+        #                 'Centennial Matsuyama', 'Argent Daisy', 'Eagle Sapporo', 'Eagle Melbourne',
+        #                 'Challenge Prospect II', 'St Clemens', 'St Pauli', 'Esteem Houston',
+        #                 'Esteem Energy',
+        #                 'Esteem Discovery', 'Esteem Endeavour', 'Solar Katherine', 'Solar Melissa',
+        #                 'Solar Madelein', 'Solar Claire', 'Esteem Sango']),
+        #            'Tanker2 SIN': sorted(['Hafnia Nordica',
+        #                                   'Peace Victoria', 'Orient Challenge', 'Orient Innovation', 'Crimson Jade',
+        #                                   'Crimson Pearl', 'Hafnia Hong Kong', 'Hafnia Shanghai', 'San Jack',
+        #                                   'Hafnia Shenzhen', 'HARRISBURG', 'Hafnia Nanjing'])
+        #            }
+
+        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
         statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
         docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
 
@@ -135,7 +151,3 @@ def filtered_Data():
         csv = df.to_csv().encode('utf-8')  # write df to csv
         btnMsg = 'Download ALL Records as CSV'
         st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
-    with st.expander("Report Generator"):
-        col1,col2,col3=st.columns(3)
-        with col1:
-            st.date_input("Select dates")

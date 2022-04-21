@@ -1,4 +1,4 @@
-import goto
+import plotly.express as px
 import streamlit as st, pandas as pd
 from load_Data import get_data
 import sqlite3
