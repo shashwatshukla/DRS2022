@@ -1,26 +1,74 @@
 
-import plotly.express as px
+
 import streamlit as st, pandas as pd
-from load_Data import get_data
+from load_Data import get_data, save_data_by_query,save_data
 import sqlite3
-df_drsend = get_data(r'database/mms_master.sqlite','drsend')
-df_vessel = get_data(r'database/mms_master.sqlite','vessels')
-df_fleet = get_data(r'database/mms_master.sqlite','fleet')
-flt_list=dict(df_fleet[['fltLocalName','fltNameUID']].values)
+db='database/mms_master.sqlite'
+
+upldcol1,upldcol2,upldcol3=st.columns(3)
+
+df = get_data(r'database/mms_master.sqlite', 'drsend')
+drsHeaders = df.columns.values
+with upldcol1:
+    uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
+if uploaded_file is not None:
+    dfVslDrs = pd.read_excel(uploaded_file, sheet_name='DRSEND', skiprows=6, dtype=str,
+                             na_filter=False, parse_dates=False, usecols='A:CV')
+    # import data from excel with all col=str and do not put <NA> for missing data
+    filename = uploaded_file.name
+    if dfVslDrs.iloc[-1, 0] == "ZZZ":  # (last line, 1st col) implemented crude check for a valid DRS file
+        dfVslDrs.drop(dfVslDrs.index[-1], inplace=True)  # drop the last row - with ZZZ
+
+        vsldfShape = dfVslDrs.shape
+        st.markdown(f'Raw data from Vessel: \n{vsldfShape[0]} Records found in {filename}, '
+                    f'(in {vsldfShape[1]} Columns)')
+        dfVslDrs.columns = drsHeaders  # rename the headers for Vessel file, same as master db
+
+        #---Check and remove entries with the word <delete> in co_eval ---------------------------------------------------------
+
+        delete_exists = (dfVslDrs['co_eval'].str.contains('<delete>', case=False)).any() # Check if <delete> exists in any row in uploaded
+        new_records = len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
+        old_records = len(dfVslDrs)-len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])
+        dfUpdated = dfVslDrs.loc[~dfVslDrs['co_eval'].str.contains('<delete>', case=False)]
+        df_deleted = dfVslDrs.loc[dfVslDrs['co_eval'].str.contains('<delete>', case=False)]
+        if delete_exists:
+            st.info('Following Rows will be deleted from the database. Do you wish to continue?')
+
+            #df_deleted['dummy2'] = str(pd.datetime.now()) + " by " + st.session_state.id
+            st.write(df_deleted)
+        update_btn = st.button('Update database')
+        cancel_btn = st.button('Cancel')
+        if update_btn:
+            save_data_by_query(db, 'drsend', dfUpdated)
+            if delete_exists:
+                save_data_by_query(db,'drsend_deleted',df_deleted)
+            deleted_record = len(df_deleted)
+            st.info(f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
+        if cancel_btn:
+            st.warning('No changes made to the Database. You may upload another DRS file')
+    else:
+        st.warning('Uploaded File is not a valid DR Sender file. Please try again!')
 
 
-df_merged = pd.merge(df_drsend,df_vessel[['vsl_imo','statusActiveInactive','vslFleet']], on = 'vsl_imo',how = 'left') # brig col from vessel to drsend dataframe
-df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace = True)
-# df_nan = df_merged[df_merged['statusActiveInactive'].isna()] # chceck ships status not listed in DB
-# df_nan2 = df_merged[df_merged['vslFleet'].isna()] # chceck ships fleet not listed in DB
-# missingships = list(df_nan['ship_name'].unique()) # check for missing ships in DB
-st.write(df_merged)
-#st.write(df_nan)
-#st.write(df_nan2)
-#st.write(missingships)
-# missingfleet = list(df_nan2['ship_name'].unique())
-#st.write(missingfleet)
-group_wise={list(flt_list.keys())[i]:sorted(list(df_merged.loc[df_merged['vslFleet'] == str(list(flt_list.values())[i])
-,'ship_name'].unique())) for i in range(len(flt_list))} # all vesssel fleet wise using dict comprehension
-st.write(group_wise)
 
+
+
+
+
+
+
+
+
+
+
+#--------------------for getting vessel names from fleet
+# df_drsend = get_data(r'database/mms_master.sqlite','drsend')
+# df_vessel = get_data(r'database/mms_master.sqlite','vessels')
+# df_fleet = get_data(r'database/mms_master.sqlite','fleet')
+# flt_list=dict(df_fleet[['fltLocalName','fltNameUID']].values)
+# df_merged = pd.merge(df_drsend,df_vessel[['vsl_imo','statusActiveInactive','vslFleet']], on = 'vsl_imo',how = 'left') # brig col from vessel to drsend dataframe
+# df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace = True)
+# st.write(df_merged)
+# group_wise={list(flt_list.keys())[i]:sorted(list(df_merged.loc[df_merged['vslFleet'] == str(list(flt_list.values())[i])
+# ,'ship_name'].unique())) for i in range(len(flt_list))} # all vesssel fleet wise using dict comprehension
+# st.write(group_wise)
