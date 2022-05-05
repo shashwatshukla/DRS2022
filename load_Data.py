@@ -16,7 +16,7 @@ def get_data(db, tbl):
                       "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
                       "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]#
         for someCol in toCorrect:
-            df_data[someCol] = pd.to_datetime(df_data[someCol],errors='coerce').apply(lambda x: x.date())#, format="%Y/%m/%d")#.dt.date
+            df_data[someCol] = pd.to_datetime(df_data[someCol],errors='coerce',infer_datetime_format=True).apply(lambda x: x.date())#, format="%Y/%m/%d")#.dt.date
     df_data.replace({pd.NaT: ''}, inplace=True) #remove the NaT values in missing dates
     df_data=df_data.applymap(str)
     return df_data
@@ -39,14 +39,6 @@ def save_data_by_kwery(db,tbl,df):
 
     try:
         columns = dbHeaders
-        # firstRow = True
-        # if firstRow:  # Process the Headers row and make new table if none exists
-        #     s1 = f"CREATE TABLE if not exists {tbl} ("
-        #     s2 = ', '.join(
-        #         ['"%s" text' % column for column in columns])  # join ' text' type to each column name
-        #     s3 = s1 + s2 + ', PRIMARY KEY ("DRS_ID"), UNIQUE ("DRS_ID"));'  # define DRS_ID as unique and primary key for the table if creating
-        #     cursor.execute(s3)
-        #     conn1.commit()
         for count, row in df.iterrows():  # enumerate(df1, start=1):  # reading all other rows
             if count == 1:
                 vslName = row[47]

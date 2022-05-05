@@ -3,12 +3,11 @@ import plotly.express as px
 from load_Data import get_data
 def filtered_Data():
     df = []
-    sql3db = r'database/mms_master.sqlite'  # destination db
+    master_db = r'database/mms_master.sqlite'  # destination db
     st.header('DR Sender 2022')
     #  Load dataframe
-    # shutil.copyfile(r'mms_master.sqlite',sql3db)
-    conn = sqlite3.connect(sql3db)
-    df = pd.read_sql_query('select * from drsend', conn)
+    conn = sqlite3.connect(master_db)
+    df = get_data(master_db,'drsend')
     df_counts = pd.read_sql_query("SELECT ship_name, "
                                   "SUM (CASE WHEN status= 'OPEN' then 1 ELSE 0 END) as 'Open',"
                                   "SUM (CASE WHEN status= 'CLOSE' then 1 ELSE 0 END) as 'Closed' "
@@ -30,8 +29,6 @@ def filtered_Data():
                  'reason_rc', 'corr_action', 'rpt_by', 'insp_by', 'insp_detail', 'update_by', 'update_dt',
                  'ext_dt', 'ext_rsn', 'req_num', 'ext_cmnt', 'sys_code', 'eq_code']
 
-    df[['delay_hr', 'downtime_hr', 'VET_risk']] = df[['delay_hr', 'downtime_hr', 'VET_risk']] \
-        .apply(pd.to_numeric, errors='coerce', axis=1)  # make the three cols numeric
     drsHeaders = df.columns.values
     # st.dataframe(drsHeaders)
 
@@ -50,46 +47,17 @@ def filtered_Data():
         df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
         df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
         flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
-
         df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                              how='left')  # brig col from vessel to drsend dataframe
-        df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace=True)
+        df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
         fltList = {
-            list(flt_list.keys())[i]: sorted(list(df_merged.loc[df_merged['vslFleet'] == str(list(flt_list.values())[i])
+            list(flt_list.keys())[i]: sorted(list(df_active_ships.loc[df_active_ships['vslFleet'] == str(list(flt_list.values())[i])
             , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
-        uniqShips = list(dfSelected['ship_name'].unique())  # get list of unique ships from DB
-        fltList['All vessels']=uniqShips
+        uniqShips = list(df_active_ships['ship_name'].unique())  # get list of unique ships from DB
+
+        fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
 
 
-
-
-        # fltList = {'All vessels': uniqShips,
-        #            'Cargo': sorted(
-        #                ['Luminous Ace', 'Siam Ocean', 'Ken San', 'Comet Ace', 'Ken Goh', 'Ken Ryu', 'Progress Ace',
-        #                 'Ken Mei', 'Paradise Ace', 'Ken Rei', 'Ken Toku', 'Southern Star', 'Andromeda Spirit',
-        #                 'Kariyushi Leader', 'Ken Hope', 'Morning Clara', 'Ocean Phoenix', 'Green Phoenix',
-        #                 'Pacific Hero', 'Glorious Ace', 'Global Phoenix', 'AM BREMEN', 'Coral Opal', 'Paraburdoo',
-        #                 'Bulk Phoenix', 'African Teist', 'Robin Wind', 'Andes Queen', 'Loch Shuna', 'Global Coral',
-        #                 'Blue Akihabara', 'Mi Harmony', 'Federal Tokoro', 'Santa Francesca', 'IVS Phoenix',
-        #                 'Loch Ness', 'Loch Nevis', 'Pavo Bright', 'GT DEMETER', 'Antares Leader', 'Aries Karin',
-        #                 'Aries Sumire', 'Ikan Bawal', 'Jubilant Devotion', 'Pavo Brave', 'Stardom Wave',
-        #                 'Vanguardia']),
-        #            'Tanker1': sorted(
-        #                ['Tokio', 'Taiga', 'Tsushima', 'BW Tokyo', 'BW Kyoto', 'Marvel Kite',
-        #                 'Takasago', 'Tenma', 'Esteem Astro', 'Esteem Explorer', 'Metahne Mickie Harper',
-        #                 'Methane Patricia Camila', 'Red Admiral']),
-        #            'Tanker2 SMI': sorted(
-        #                ['Ginga Hawk', 'Ginga Kite', 'Ginga Merlin', 'Centennial Misumi',
-        #                 'Centennial Matsuyama', 'Argent Daisy', 'Eagle Sapporo', 'Eagle Melbourne',
-        #                 'Challenge Prospect II', 'St Clemens', 'St Pauli', 'Esteem Houston',
-        #                 'Esteem Energy',
-        #                 'Esteem Discovery', 'Esteem Endeavour', 'Solar Katherine', 'Solar Melissa',
-        #                 'Solar Madelein', 'Solar Claire', 'Esteem Sango']),
-        #            'Tanker2 SIN': sorted(['Hafnia Nordica',
-        #                                   'Peace Victoria', 'Orient Challenge', 'Orient Innovation', 'Crimson Jade',
-        #                                   'Crimson Pearl', 'Hafnia Hong Kong', 'Hafnia Shanghai', 'San Jack',
-        #                                   'Hafnia Shenzhen', 'HARRISBURG', 'Hafnia Nanjing'])
-        #            }
 
         fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
         statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
@@ -100,7 +68,7 @@ def filtered_Data():
                             [])  # get vsl names as per flt selected and flatten the list (sum)
         vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
-        # st.write(df_sel_vsl_counts)
+        #st.write(df_sel_vsl_counts)
         fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
         st.plotly_chart(fig)
 
@@ -109,11 +77,7 @@ def filtered_Data():
         blackout = st.multiselect('Blackout', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
         brkdn = st.multiselect('Breakdown', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
 
-    with col4:
-        severity = st.multiselect('Severity:', options=dfSelected['Severity'].unique(),
-                                  default=dfSelected['Severity'].unique())
-        coc = st.multiselect('CoC', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
-        searchText = st.text_input('Search')
+
 
     with col1:
         dt_today = datetime.date.today()
@@ -128,6 +92,12 @@ def filtered_Data():
         rptBy = st.multiselect('Reported by', options=sorted(dfSelected['rpt_by'].unique()),
                                default=['C MMS', 'F Vessel'])
         overDueStat = st.multiselect('Overdue Status', options=['Yes', 'No'], default=['Yes', 'No'])
+
+        with col4:
+            severity = st.multiselect('Severity:', options=dfSelected['Severity'].unique(),
+                                      default=dfSelected['Severity'].unique())
+            coc = st.multiselect('CoC', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+            searchText = st.text_input('Search')
 
     with filterContainer:
         #  now filter the dataframe using all above filter settings

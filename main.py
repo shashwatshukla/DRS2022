@@ -10,12 +10,12 @@ df_mailid=pd.read_sql_query('select siEmail from si', conn)
 conn.close()
 col1, col2,col3=st.columns(3)
 with col3:
-    mailid = st.text_input("Please enter your MMS email to continue")
+
+    mailid = st.text_input("MMS email id",value='@mmstokyo.co.jp')
 #if 'id' not in st.session_state:
 st.session_state.id = mailid
 allmailid = df_mailid['siEmail'].tolist()
 if(mailid in allmailid):
-
     sb_sel = st.sidebar.radio('Select Page', options=['View/Filter Data', 'Download DR sender', 'Upload DR sender',
                                                       'Dashboard(In progress)'])
     if sb_sel == 'Download DR sender':
@@ -27,4 +27,5 @@ if(mailid in allmailid):
     if sb_sel == 'Dashboard(In progress)':
         dashboard()
 else:
-    st.info('User not found please contact tech support team')
+    with col3:
+        st.warning('MMS mail id required to proceed......')
