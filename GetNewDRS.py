@@ -41,7 +41,7 @@ def make_NewDRS():
         df_currDRS = df_rawData.query("ship_name == @shipName and (dt_ocurred.str.contains(@curr_year) or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))", engine='python')
 
         numberOfRows = len(df_currDRS)
-        jobDone = st.progress(0)
+        jobProgress = st.progress(0)
         filename = r'_DRS V56.xlsm'  #
         xl = win32com.client.Dispatch("Excel.Application", pythoncom.CoInitialize())
         with xw.App(visible=False) as app:
@@ -51,7 +51,7 @@ def make_NewDRS():
             for i in range(numberOfRows):
                 ws.range('A8:CZ8').insert(shift='down',
                                           copy_origin='format_from_left_or_above')  # shift named ranges in excel to prevent overwriting
-                jobDone.progress(int(i/numberOfRows*100))
+                jobProgress.progress(int(i/numberOfRows*100))
             ws.range('C1').value = shipName
             f_name = str(date.today()) + ' ' + shipName + ' DRS56.xlsm'
             new_drs_file = os.path.join('temp', f_name)  # save in temp folder
@@ -59,7 +59,7 @@ def make_NewDRS():
             f = book.save(new_drs_file)  # save excel as new file
             book.close()
             print (f'saved: {new_drs_file}')
-            jobDone.progress(100)
+            jobProgress.progress(100)
         # app.quit()
 
         with col2:
