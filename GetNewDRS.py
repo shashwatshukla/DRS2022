@@ -9,7 +9,7 @@ import os, time
 
 disp_cols = []
 output = BytesIO
-df_rawData = get_data(r'database/mms_master.sqlite', 'drsend')  # get raw data to work upon
+
 
 
 
@@ -21,10 +21,15 @@ def make_NewDRS():
                  'reason_rc', 'corr_action', 'rpt_by', 'insp_by', 'insp_detail', 'update_by', 'update_dt',
                  'ext_dt', 'ext_rsn', 'req_num', 'ext_cmnt', 'sys_code', 'eq_code', 'ship_name']
     # st.markdown('<style>.ReactVirtualized__Grid__innerScrollContainer div[class^="row"], .ReactVirtualized__Grid__innerScrollContainer div[class^="data row"]{ background:lightyellow; } </style>', unsafe_allow_html=True)
+    def read_file(fyle):
+        with open(fyle, "rb") as filetoread:
+            xlsmbyte = filetoread.read()
+            return xlsmbyte
 
     curr_year = str(datetime.datetime.now().year)
     print(curr_year)
     st.markdown(f'Generate new **{curr_year} DR sender**')
+    df_rawData = get_data(r'database/mms_master.sqlite', 'drsend')  # get raw data to work upon
     vsl_list = sorted(list(df_rawData['ship_name'].unique()))
 
     col1, col2, col3 = st.columns(3)
@@ -42,6 +47,7 @@ def make_NewDRS():
         filename = r'_DRS V56.xlsm'  #
         book = xw.Book(filename, password='mms@user')  # Get template file
         ws = book.sheets['DRSEND']
+        app = xw.apps.active
         #app = xw.apps.active
         for i in range(numberOfRows):
             ws.range('A8:CZ8').insert(shift='down',
@@ -52,19 +58,17 @@ def make_NewDRS():
         ws.range('A8').options(index=False, header=False).value = df_currDRS  # write dataframe to excel
         f = book.save(new_drs_file)  # save excel as new file
         book.close()
+        app.kill()
+
         with col2:
             st.info(f'Done... {shipName} DR Sender has {len(df_currDRS)} entries for {curr_year}.')
-        st.write(df_currDRS[disp_cols])  # display only selected columns
 
     #app.quit()
-        def read_file(fyle):
-            with open(fyle,"rb") as filetoread:
-                xlsmbyte = filetoread.read()
-                return xlsmbyte
         st.download_button(label=f"Download {shipName} DR sender",
                            data=read_file(new_drs_file),
                            file_name=new_drs_file[4:],
                            mime='application/vns.ms-excel')
+        st.write(df_currDRS[disp_cols])  # display only selected columns
 
 
 
