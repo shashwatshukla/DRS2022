@@ -1,67 +1,135 @@
-import streamlit as st, pandas as pd
-from load_Data import get_data, save_data_by_query,run_kwery
-import sqlite3
-mast_db='database/mms_master.sqlite'
+import pandas as pd, sqlite3, datetime, streamlit as st
+import plotly.express as px
+from load_Data import get_data
+st.set_page_config(page_title='DR Sender', layout='wide')
+df = []
+master_db = r'database/mms_master.sqlite'  # destination db
+st.header('DR Sender 2022')
+#  Load dataframe
+conn = sqlite3.connect(master_db)
+df = get_data(master_db,'drsend')
+df_counts = pd.read_sql_query("SELECT ship_name, "
+                              "SUM (CASE WHEN status= 'OPEN' then 1 ELSE 0 END) as 'Open',"
+                              "SUM (CASE WHEN status= 'CLOSE' then 1 ELSE 0 END) as 'Closed' "
+                              "from drsend GROUP by ship_name", conn)
+# df_overdue - pd.read_sql_query("SELECT ship_name, "
+#                               "SUM (CASE WHEN overdue= 'Yes' then 1 ELSE 0 END) as 'Overdue',"
+#                               "SUM (CASE WHEN status= 'No' then 1 ELSE 0 END) as 'OK' "
+#                               "from drsend GROUP by ship_name", conn)
+conn.close()
+conn = sqlite3.connect(r'database/mms_master.sqlite')
+dfvslMaster = pd.read_sql_query(
+    'select vslName, vsl_imo, vslCode, vslFleet, cast(statusActiveInactive as text) from vessels', conn)
+dffltMaster = pd.read_sql_query('select fltNameUID, fltMainName, fltLocalName from fleet', conn)
+conn.close()
 
-upldcol1,upldcol2,upldcol3=st.columns(3)
+disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'done_dt', 'ser_no', 'nc_detail', 'est_cause_ship',
+             'init_action_ship', 'init_action_ship_dt',
+             'final_action_ship', 'final_action_ship_dt', 'co_eval',
+             'reason_rc', 'corr_action', 'rpt_by', 'insp_by', 'insp_detail', 'update_by', 'update_dt',
+             'ext_dt', 'ext_rsn', 'req_num', 'ext_cmnt', 'sys_code', 'eq_code']
 
-df = get_data(r'database/mms_master.sqlite', 'drsend')
 drsHeaders = df.columns.values
-with upldcol1:
-    uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
-if uploaded_file is not None:
+# st.dataframe(drsHeaders)
 
-    dfVslDrs = pd.read_excel(uploaded_file, sheet_name='DRSEND', skiprows=6, dtype=str,
-                             na_filter=False, usecols='A:CV')
+dfSelected = df[
+    ['ship_name','vsl_imo', 'dt_ocurred', 'ser_no', 'def_code', 'rpt_by', 'insp_detail', 'nc_detail', 'init_action_ship',
+     'final_action_ship', 'reason_rc', 'co_eval', 'corr_action', 'target_dt', 'done_dt', 'status', 'delay_hr',
+     'downtime_hr', 'Severity', 'overdue', 'ext_rsn', 'ext_dt', 'ext_cmnt', 'brkdn_tf', 'critical_eq_tf',
+     'blackout_tf',
+     'docking_tf', 'coc_tf', 'est_cause_ship', 'init_action_ship_dt', 'final_action_ship_dt', 'insp_by',
+     'update_by', 'update_dt', 'req_num', 'sys_code', 'eq_code']]
 
-
-    # dfVslDrs = pd.read_excel(uploaded_file, sheet_name='DRSEND', skiprows=6, dtype=str,
-    #                          na_filter=False,date_parser=date_parser,parse_dates=['Unnamed: 1'], usecols='A:CV')
-    # import data from excel with all col=str and do not put <NA> for missing data
-    filename = uploaded_file.name
-    if dfVslDrs.iloc[-1, 0] == "ZZZ":  # (last line, 1st col) implemented crude check for a valid DRS file
-        dfVslDrs.drop(dfVslDrs.index[-1], inplace=True)  # drop the last row - with ZZZ
-
-        vsldfShape = dfVslDrs.shape
-        st.markdown(f'Raw data from Vessel: \n{vsldfShape[0]} Records found in {filename}, '
-                    f'(in {vsldfShape[1]} Columns)')
-        dfVslDrs.columns = drsHeaders  # rename the headers for Vessel file, same as master db
-
-        toCorrect = ["dt_ocurred", "init_action_ship_dt", "target_dt", "final_action_ship_dt", "done_dt",
-                                   "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
-                                   "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]#
-        for someCol in toCorrect:
-                         dfVslDrs[someCol] = pd.to_datetime(dfVslDrs[someCol],errors='coerce').apply(lambda x: x.date())  # Remove time stamp from date cols
-        dfVslDrs.replace({pd.NaT:''},inplace=True) # Remove NaT valus in date columns
-        dfVslDrs=dfVslDrs.applymap(str) # Convert all dataframe values to string for writing back to SQlite DB
+filterContainer = st.expander('Filter the data and download here')
+filt_form=filterContainer.form('filters')
+with filt_form:
+    col1, col2, col3, col4 = filt_form.columns(4)
 
 
-        #---Check and remove entries with the word <delete> in co_eval ---------------------------------------------------------
+    with col2:
+        df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
+        df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+        flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
+        df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
+                             how='left')  # brig col from vessel to drsend dataframe
+        df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
+        fltList = {
+            list(flt_list.keys())[i]: sorted(list(df_active_ships.loc[df_active_ships['vslFleet'] == str(list(flt_list.values())[i])
+            , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
+        uniqShips = list(df_active_ships['ship_name'].unique())  # get list of unique ships from DB
 
-        delete_exists = (dfVslDrs['co_eval'].str.contains('<delete>', case=False)).any() # Check if <delete> exists in any row in uploaded
-        new_records = len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])  # all rows which NOT exist in master DB (new records)
-        old_records = len(dfVslDrs)-len(dfVslDrs[~dfVslDrs['DRS_ID'].isin(df['DRS_ID'])])  # all rows which exist in master DB
-        df_updated = dfVslDrs.loc[~dfVslDrs['co_eval'].str.contains('<delete>', case=False)]  # all rows which do NOT contain <delete>
-        df_to_delete = dfVslDrs.loc[dfVslDrs['co_eval'].str.contains('<delete>', case=False)]  # all rows which contain <delete>
-        st.write(df_updated)
-        if delete_exists:
-            st.info('Following Rows will be deleted from the database. Do you wish to continue?')
-            #df_to_delete['dummy2'] = str(pd.datetime.now()) + " by " + st.session_state.id  # write active username in col 'dummy2'
-            st.write(df_to_delete)  # display deleted rows
-        update_btn = st.button('Update database')
-        cancel_btn = st.button('Cancel')
-        if update_btn:
-            save_data_by_query(mast_db, 'drsend', df_updated)
-            if delete_exists:
-                del_qry= 'DELETE FROM drsend WHERE EXISTS (SELECT * FROM drsend_deleted WHERE drsend_deleted.DRS_ID = drsend.DRS_ID);' # query to remove records from master DB
-                save_data_by_query(mast_db,'drsend_deleted',df_to_delete)
-                run_kwery(mast_db,del_qry) # Call function to run query
-            deleted_record = len(df_to_delete)
-            st.info(f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
-        if cancel_btn:
-            st.warning('No changes made to the Database. You may upload another DRS file')
-    else:
-        st.warning('Uploaded File is not a valid DR Sender file. Please try again!')
+        fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
+
+
+
+        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
+        statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
+        docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+
+with filt_form:
+    vslListPerFlt = sum([fltList[x] for x in fltName],
+                        [])  # get vsl names as per flt selected and flatten the list (sum)
+    vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
+    df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
+    st.form_submit_button('Apply Filters')
+
+
+with col3:
+    criticalEq = st.multiselect('Critical Equipment', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+    blackout = st.multiselect('Blackout', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+    brkdn = st.multiselect('Breakdown', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+
+
+
+with col1:
+    dt_today = datetime.date.today()
+    dateFmTo = st.date_input('Select dates (ignore any errors when selecting dates)',
+                             [(dt_today - datetime.timedelta(days=365 * 1)), dt_today])
+    startDt = dateFmTo[0]
+    endDt = dateFmTo[1]
+
+
+    # print(dateFmTo)
+    # dt_slider = st.slider('choose dates', [datetime.date(year=2021,month=1,day=1),dt_today])
+    mask = (df['dt_ocurred'] > str(startDt)) & (df['dt_ocurred'] <= str(endDt))
+    dfSelected = dfSelected[mask]
+    rptBy = st.multiselect('Reported by', options=sorted(dfSelected['rpt_by'].unique()),
+                           default=['C MMS', 'F Vessel'])
+    overDueStat = st.multiselect('Overdue Status', options=['Yes', 'No'], default=['Yes', 'No'])
+
+    with col4:
+        severity = st.multiselect('Severity:', options=dfSelected['Severity'].unique(),
+                                  default=dfSelected['Severity'].unique())
+        coc = st.multiselect('CoC', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+
+
+with filterContainer:
+    #  now filter the dataframe using all above filter settings
+    dfFiltered = dfSelected.query("ship_name == @vslName & status == @statusNow & brkdn_tf == @brkdn "
+                                  "& critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout"
+                                  "& coc_tf == @coc & overdue == @overDueStat & Severity == @severity & rpt_by == @rptBy")
+
+    searchText = st.text_input('Search for word in NC detail')
+    dfFiltered = dfFiltered[dfFiltered['nc_detail'].str.contains(searchText, regex=False)]  # search on text entered
+    fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
+    st.plotly_chart(fig)
+    csv = dfFiltered.to_csv().encode('utf-8')  # write df to csv
+    btnMsg = 'Download ' + str(dfFiltered.shape[0]) + ' Records as CSV'
+    st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+    st.dataframe(dfFiltered[disp_cols], height=600)
+
+
+
+
+
+print('----------------')  # --------------------------------------------
+
+with st.expander('RAW DATA'):
+    st.dataframe(df)
+    csv = df.to_csv().encode('utf-8')  # write df to csv
+    btnMsg = 'Download ALL Records as CSV'
+    st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+
 
 
 

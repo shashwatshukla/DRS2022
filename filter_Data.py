@@ -41,36 +41,38 @@ def filtered_Data():
          'update_by', 'update_dt', 'req_num', 'sys_code', 'eq_code']]
 
     filterContainer = st.expander('Filter the data and download here')
-    col1, col2, col3, col4 = filterContainer.columns(4)
-
-    with col2:
-        df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
-        df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
-        flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
-        df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
-                             how='left')  # brig col from vessel to drsend dataframe
-        df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
-        fltList = {
-            list(flt_list.keys())[i]: sorted(list(df_active_ships.loc[df_active_ships['vslFleet'] == str(list(flt_list.values())[i])
-            , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
-        uniqShips = list(df_active_ships['ship_name'].unique())  # get list of unique ships from DB
-
-        fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
+    filt_form=filterContainer.form('filters')
+    with filt_form:
+        col1, col2, col3, col4 = filt_form.columns(4)
 
 
+        with col2:
+            df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
+            df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+            flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
+            df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
+                                 how='left')  # brig col from vessel to drsend dataframe
+            df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
+            fltList = {
+                list(flt_list.keys())[i]: sorted(list(df_active_ships.loc[df_active_ships['vslFleet'] == str(list(flt_list.values())[i])
+                , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
+            uniqShips = list(df_active_ships['ship_name'].unique())  # get list of unique ships from DB
 
-        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
-        statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
-        docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+            fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
 
-    with filterContainer:
+
+
+            fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
+            statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
+            docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+
+    with filt_form:
         vslListPerFlt = sum([fltList[x] for x in fltName],
                             [])  # get vsl names as per flt selected and flatten the list (sum)
         vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
-        #st.write(df_sel_vsl_counts)
-        fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
-        st.plotly_chart(fig)
+        st.form_submit_button('Apply Filters')
+
 
     with col3:
         criticalEq = st.multiselect('Critical Equipment', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
@@ -85,6 +87,8 @@ def filtered_Data():
                                  [(dt_today - datetime.timedelta(days=365 * 1)), dt_today])
         startDt = dateFmTo[0]
         endDt = dateFmTo[1]
+
+
         # print(dateFmTo)
         # dt_slider = st.slider('choose dates', [datetime.date(year=2021,month=1,day=1),dt_today])
         mask = (df['dt_ocurred'] > str(startDt)) & (df['dt_ocurred'] <= str(endDt))
@@ -97,7 +101,7 @@ def filtered_Data():
             severity = st.multiselect('Severity:', options=dfSelected['Severity'].unique(),
                                       default=dfSelected['Severity'].unique())
             coc = st.multiselect('CoC', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
-            searchText = st.text_input('Search')
+
 
     with filterContainer:
         #  now filter the dataframe using all above filter settings
@@ -105,14 +109,18 @@ def filtered_Data():
                                       "& critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout"
                                       "& coc_tf == @coc & overdue == @overDueStat & Severity == @severity & rpt_by == @rptBy")
 
+        searchText = st.text_input('Search for key words in NC detail (eg. Mooring, breakdown, Windlass etc....)')
         dfFiltered = dfFiltered[dfFiltered['nc_detail'].str.contains(searchText, regex=False)]  # search on text entered
-        st.dataframe(dfFiltered[disp_cols], height=600)
-
-
-    with col4:  # download button and file
+        fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
+        st.plotly_chart(fig)
         csv = dfFiltered.to_csv().encode('utf-8')  # write df to csv
         btnMsg = 'Download ' + str(dfFiltered.shape[0]) + ' Records as CSV'
         st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+        st.dataframe(dfFiltered[disp_cols], height=600)
+
+
+
+
 
     print('----------------')  # --------------------------------------------
 
