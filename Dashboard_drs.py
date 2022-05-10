@@ -4,11 +4,11 @@ import pandas as pd
 import sqlite3 as sq
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
-from load_Data import get_data
+from load_Data import get_data, get_vessel_byfleet
 
 def dashboard():
     # ___________________________Declarations_____________________________
-    global allShips  # to hold list of all tanker shipnames for making graphs
+    global allShips  # to hold list of all fleet shipnames for making graphs
     db = r'database/mms_master.sqlite'
     disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
                  'ser_no',
@@ -33,7 +33,6 @@ def dashboard():
 
     # _________________Data cleaning_________________________
 
-    #df_openDRS['vsl_imo'] = df_openDRS['vsl_imo'].astype(int)  # convert IMO number to int
 
     imo_active = (df_vsl_active['vsl_imo'])  # Tuple of active tanker vessel IMO
     df_active_drs = df_openDRS.loc[df_openDRS['vsl_imo'].isin(imo_active)]  # Active vessels in dataframe
@@ -51,7 +50,7 @@ def dashboard():
     mask = (pd.to_datetime('today') > df_active_drs['target_dt']) & (pd.to_datetime('today') > df_active_drs['ext_dt'])  # ext date is before
     df_active = df_active_drs.loc[mask]
     # -------------------------------------------------------------------
-    uniqShips = list(df_active['ship_name'].unique())  # get list of unique ships from DB
+    uniqShips = list(df_active['ship_name'].unique())  # get list of unique ships from active vessel DB
     fltList = {'All vessels': uniqShips,
                'Tanker1': sorted(
                    ['Tokio', 'Taiga', 'Tsushima', 'BW Tokyo', 'BW Kyoto', 'Marvel Kite',
@@ -80,7 +79,7 @@ def dashboard():
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2 = filterContainer.columns(2)
     with col2:
-        docking = st.checkbox("remove DD Jobs")
+        docking = st.checkbox("Remove DD Jobs", value=True)
     with col1:
         fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default='All vessels')
 
