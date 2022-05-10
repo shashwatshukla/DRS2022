@@ -25,7 +25,7 @@ def dashboard():
     df_fleet = get_data(r'database/mms_master.sqlite', 'fleet') # get list of fleet names for selecting vesssels fleetwise
 
 
-    df_vsl = get_data(db,'vessels')  # Get active tanker fleet vessel names and IMO
+    df_vsl = get_data(db,'vessels')  # Get active  fleet vessel names and IMO
     df_vsl_active =df_vsl.loc[df_vsl.statusActiveInactive=='1']
 
     df_si = get_data(db,'si')  # Get active SI
@@ -36,7 +36,7 @@ def dashboard():
     #df_openDRS['vsl_imo'] = df_openDRS['vsl_imo'].astype(int)  # convert IMO number to int
 
     imo_active = (df_vsl_active['vsl_imo'])  # Tuple of active tanker vessel IMO
-    df_active_drs = df_openDRS.loc[df_openDRS['vsl_imo'].isin(imo_active)]  # Active tanker vessels in dataframe
+    df_active_drs = df_openDRS.loc[df_openDRS['vsl_imo'].isin(imo_active)]  # Active vessels in dataframe
 
     allShips = pd.DataFrame(df_active_drs['ship_name'].unique())  # For using in graph
     allshipCode = dict(zip(df_vsl_active.vslName, df_vsl_active.vslCode))
@@ -79,6 +79,8 @@ def dashboard():
                                       index=0)
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2 = filterContainer.columns(2)
+    with col2:
+        docking = st.checkbox("remove DD Jobs")
     with col1:
         fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default='All vessels')
 
@@ -89,6 +91,8 @@ def dashboard():
 
 
         with filterContainer:
+            if docking:
+                df_active=df_active.loc[df_active['ext_rsn']!='Docking']
             df_active = df_active.query("ship_name == @vslName")
             df_active = df_active[disp_cols]
             st.write(df_active)
@@ -113,25 +117,27 @@ def dashboard():
         with filterContainer:
             allShips['Count'] = 0  # add col Count with val 0 in all cells
             allShips.columns = ['ship_name', 'Count']  # Rename columns
-
-            data = df_active['ship_name'].value_counts()
-            data2 = df_active['ext_rsn'].value_counts()
+            data = df_active['ship_name'].value_counts() # Pandas series
             df_graph = pd.DataFrame({'ship_name': data.index,
                                      'Count': data.values})  # create dataframe of ship name and count of open overdue def
             df_xaxis = pd.merge(allShips, df_graph, how='outer',
                                 on='ship_name')  # merge dataframes to include ships with no overdue def
             df_xaxis = df_xaxis.fillna(0)
+
             df_xaxis['Count'] = df_xaxis['Count_x'] + df_xaxis['Count_y']
             df_xaxis.drop(['Count_x', 'Count_y'], axis=1, inplace=True)
 
             df_xaxis.sort_values(by='ship_name')  # sort
+            filter1 = df_xaxis['ship_name'].isin(vslName)
+            df_xaxis = df_xaxis[filter1]
             df_xaxis = df_xaxis.replace({'ship_name': allshipCode})
-
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
                          title="<b>Count of extended overdue not closed till today</b>",
                          color_discrete_sequence=px.colors.qualitative.Pastel)
             # color_continuous_scale=px.colors.sequential.Burg)
+            df_active=df_active.sort_values(by='ship_name')
+            df_active=df_active.replace({'ship_name': allshipCode})
 
             fig2 = px.bar(df_active, y=["ship_name"], x="ext_rsn", height=500, width=1200, color='ext_rsn',
                           title="<b>Reason for Extended overdue not closed till today</b>",
