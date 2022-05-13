@@ -106,3 +106,6 @@ def get_vessel_byfleet(status):
         , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
     group_wise['All vessels'] = sorted(uniq_ships)
     return group_wise
+
+
+
