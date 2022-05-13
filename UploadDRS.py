@@ -1,5 +1,5 @@
 import streamlit as st, pandas as pd
-from load_Data import get_data, save_data_by_kwery, run_kwery
+from helpers import get_data, save_data_by_kwery, run_kwery
 
 def upload_drs():
     mast_db = 'database/mms_master.sqlite'

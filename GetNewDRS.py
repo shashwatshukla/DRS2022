@@ -1,7 +1,7 @@
 import datetime
 import pandas as pd
 import streamlit as st
-from load_Data import get_data
+from helpers import get_data
 import xlwings as xw
 from datetime import date
 from io import BytesIO
@@ -76,6 +76,23 @@ def make_NewDRS():
                                file_name=new_drs_file[4:],
                                mime='application/vns.ms-excel')
 
+import xlwings as xw
+
+try:
+    with xw.App(visible=False, add_book=False) as app:
+        wb = app.books.open(r'C:\Shares\makePS\Make PS by query.xlsm')
+
+        run_macro = wb.app.macro('genFleetData')
+        run_macro()
+
+
+        wb.close()
+        app.quit()
+
+except Exception as ex:
+    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+    message = template.format(type(ex).__name__, ex.args)
+    print(message)
 
 
 
