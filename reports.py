@@ -2,8 +2,8 @@ import plotly.express as px
 import streamlit as st
 import pandas as pd
 import sqlite3 as sq
-from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
-from st_aggrid.grid_options_builder import GridOptionsBuilder
+# from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
+# from st_aggrid.grid_options_builder import GridOptionsBuilder
 from helpers import get_data, get_vessel_byfleet
 import datetime
 

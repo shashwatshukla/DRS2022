@@ -20,7 +20,7 @@ def get_data(db, tbl):
                      "update_dt", "ext_dt", "PSC_picdt", "PSC_info2ownr_dt", "PSC_info2chrtr_dt", "PSC_info2rtshp_dt",
                      "PSC_info2oilmaj_dt", "PSC_info2mmstpmgmt_dt", "PSC_sndr_offimport_dt"]  #
         for someCol in toCorrect:
-            df_data[someCol] = pd.to_datetime(df_data[someCol], errors='coerce', infer_datetime_format=True).apply(
+            df_data[someCol] = pd.to_datetime(df_data[someCol], errors='coerce').apply(
                 lambda x: x.date())  # , format="%Y/%m/%d")#.dt.date
     df_data.replace({pd.NaT: ''}, inplace=True)  # remove the NaT values in missing dates
     df_data = df_data.applymap(str)
@@ -95,7 +95,7 @@ def get_vessel_byfleet(status):
     df_drsend = get_data(r'database/mms_master.sqlite', 'drsend')
     df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
     df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
-    flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
+    flt_list = dict(df_fleet[['fltLocalName', 'fltLocalName']].values)
     df_merged = pd.merge(df_drsend, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                          how='left')  # brig col from vessel to drsend dataframe
     if status:

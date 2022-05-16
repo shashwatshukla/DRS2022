@@ -63,7 +63,7 @@ def make_NewDRS():
                 book.close()
                 print (f'saved: {new_drs_file}')
                 jobProgress.progress(100)
-            # app.quit()
+                #app.quit()
 
             with col2:
                 st.info(f'Done... {shipName} DR Sender has {len(df_currDRS)} entries for {curr_year}.')
@@ -76,23 +76,6 @@ def make_NewDRS():
                                file_name=new_drs_file[4:],
                                mime='application/vns.ms-excel')
 
-import xlwings as xw
-
-try:
-    with xw.App(visible=False, add_book=False) as app:
-        wb = app.books.open(r'C:\Shares\makePS\Make PS by query.xlsm')
-
-        run_macro = wb.app.macro('genFleetData')
-        run_macro()
-
-
-        wb.close()
-        app.quit()
-
-except Exception as ex:
-    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
-    message = template.format(type(ex).__name__, ex.args)
-    print(message)
 
 
 

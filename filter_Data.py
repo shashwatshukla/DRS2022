@@ -46,26 +46,27 @@ def filtered_Data():
     with col2:
         df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
         df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
-        flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
+        flt_list = dict(df_fleet[['fltLocalName', 'fltLocalName']].values)
         df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                              how='left')  # brig col from vessel to drsend dataframe
         df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
+
         fltList = {
             list(flt_list.keys())[i]: sorted(list(df_active_ships.loc[df_active_ships['vslFleet'] == str(list(flt_list.values())[i])
             , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
+
         uniqShips = list(df_active_ships['ship_name'].unique())  # get list of unique ships from DB
 
         fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
 
-
-
         fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
+
         statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
         docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
+    st.write(flt_list)
 
     with filterContainer:
-        vslListPerFlt = sum([fltList[x] for x in fltName],
-                            [])  # get vsl names as per flt selected and flatten the list (sum)
+        vslListPerFlt = sum([fltList[x] for x in fltName], [])  # get vsl names as per flt selected and flatten the list (sum)
         vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
         #st.write(df_sel_vsl_counts)
