@@ -53,9 +53,9 @@ def save_data_by_kwery(db, tbl, df):
             logging.info(c)
             logging.info(f'updated. ID: {row[0]}')
             cursor.execute(query, list(row))  # run the qyery with actual values which will get imported
-
             conn1.commit()
             # st.info(f'DB updated. No errors found for{vslName}')
+
     except sqlite3.Error as er:
         st.write('SQLite error: %s' % (' '.join(er.args)))
         st.write("Exception class is: ", er.__class__)

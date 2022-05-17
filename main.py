@@ -3,11 +3,19 @@ from GetNewDRS import make_NewDRS
 from filter_Data import filtered_Data
 from UploadDRS import upload_drs
 from Dashboard_drs import dashboard
+from helpers import get_data
 
 st.set_page_config(page_title='DR Sender', layout='wide')
-conn=sqlite3.connect(r'database/mms_master.sqlite')
-df_mailid=pd.read_sql_query('select siName,siEmail from si', conn)
-conn.close()
+df_mailid = get_data(r'database/mms_master.sqlite','si')
+df_mailid=df_mailid[['siName','siEmail']]
+
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 col1, col2,col3=st.columns(3)
 allmailid = df_mailid['siEmail'].tolist()
