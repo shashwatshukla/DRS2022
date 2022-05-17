@@ -63,7 +63,7 @@ def filtered_Data():
 
         statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
         docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
-    st.write(flt_list)
+    # st.write(flt_list)
 
     with filterContainer:
         vslListPerFlt = sum([fltList[x] for x in fltName], [])  # get vsl names as per flt selected and flatten the list (sum)

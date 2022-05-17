@@ -1,14 +1,8 @@
-import logging
-import sqlite3
-import sys
-import traceback
-
+import logging, sqlite3, sys, traceback
 import pandas as pd
 import streamlit as st
 
-
-# @st.cache (allow_output_mutation=True)
-# experimental memo@st.experimental_memo
+@st.cache (ttl=1200)  #, allow_output_mutation=True)
 def get_data(db, tbl):
     conn = sqlite3.connect(db)
     df_data = pd.read_sql_query(f'select * from {tbl}', conn)
