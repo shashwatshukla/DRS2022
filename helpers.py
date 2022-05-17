@@ -2,7 +2,7 @@ import logging, sqlite3, sys, traceback
 import pandas as pd
 import streamlit as st
 
-@st.cache (ttl=1200)  #, allow_output_mutation=True)
+@st.cache (ttl=1200, allow_output_mutation=True)  #, allow_output_mutation=True)
 def get_data(db, tbl):
     conn = sqlite3.connect(db)
     df_data = pd.read_sql_query(f'select * from {tbl}', conn)
@@ -42,13 +42,14 @@ def save_data_by_kwery(db, tbl, df):
         for count, row in df.iterrows():  # enumerate(df1, start=1):  # reading all other rows
             if count == 1:
                 vslName = row[47]
-                print('----', vslName, '----')
+                # print('----', vslName, '----')
                 logging.info(' -------------------  ' + vslName)
             query = 'INSERT OR REPLACE INTO "%s" ({0}) VALUES ({1})' % tbl  # Make SQL query with (headers / col name) VALUES (values, for now '?') for each row
             query = query.format(','.join(columns),
                                  ','.join('?' * len(columns)))  # = column names, followed by same number of '?'
             c = "Row # %d updated: ID %s" % (count, row[0])
             # st.write(c)
+            # TODO implement logging to file
             logging.info(c)
             logging.info(f'updated. ID: {row[0]}')
             cursor.execute(query, list(row))  # run the qyery with actual values which will get imported

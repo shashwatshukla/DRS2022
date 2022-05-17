@@ -1,5 +1,6 @@
 import streamlit as st, pandas as pd
 from helpers import get_data, save_data_by_kwery, run_kwery
+# from streamlit import caching
 
 def upload_drs():
     mast_db = 'database/mms_master.sqlite'
@@ -54,8 +55,8 @@ def upload_drs():
                     save_data_by_kwery(mast_db, 'drsend_deleted', df_to_delete)
                     run_kwery(mast_db, del_qry)  # Call function to run query
                 deleted_record = len(df_to_delete)
-                st.info(
-                    f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
+                st.info(f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
+                st.legacy_caching.clear_cache()
             if cancel_btn:
                 st.warning('No changes made to the Database. You may upload another DRS file')
         else:
