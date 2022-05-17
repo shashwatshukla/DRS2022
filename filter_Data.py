@@ -1,6 +1,7 @@
 import pandas as pd, sqlite3, datetime, streamlit as st
 import plotly.express as px
 from helpers import get_data
+
 def filtered_Data():
     df = []
     master_db = r'database/mms_master.sqlite'  # destination db
@@ -40,7 +41,7 @@ def filtered_Data():
          'docking_tf', 'coc_tf', 'est_cause_ship', 'init_action_ship_dt', 'final_action_ship_dt', 'insp_by',
          'update_by', 'update_dt', 'req_num', 'sys_code', 'eq_code']]
 
-    filterContainer = st.expander('Filter the data and download here')
+    filterContainer = st.expander('Click to select filters')
     col1, col2, col3, col4 = filterContainer.columns(4)
 
     with col2:
@@ -70,8 +71,8 @@ def filtered_Data():
         vslName = st.multiselect('Select the vessel:', options=vslListPerFlt, default=vslListPerFlt)
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
         #st.write(df_sel_vsl_counts)
-        fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400)
-        st.plotly_chart(fig)
+    fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400,width=1000)
+    st.plotly_chart(fig)
 
     with col3:
         criticalEq = st.multiselect('Critical Equipment', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
@@ -100,25 +101,25 @@ def filtered_Data():
             coc = st.multiselect('CoC', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
             searchText = st.text_input('Search')
 
-    with filterContainer:
-        #  now filter the dataframe using all above filter settings
-        dfFiltered = dfSelected.query("ship_name == @vslName & status == @statusNow & brkdn_tf == @brkdn "
-                                      "& critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout"
-                                      "& coc_tf == @coc & overdue == @overDueStat & Severity == @severity & rpt_by == @rptBy")
+    # with filterContainer:
+    #  now filter the dataframe using all above filter settings
+    dfFiltered = dfSelected.query("ship_name == @vslName & status == @statusNow & brkdn_tf == @brkdn "
+                                  "& critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout"
+                                  "& coc_tf == @coc & overdue == @overDueStat & Severity == @severity & rpt_by == @rptBy")
 
-        dfFiltered = dfFiltered[dfFiltered['nc_detail'].str.contains(searchText, regex=False)]  # search on text entered
-        st.dataframe(dfFiltered[disp_cols], height=600)
+    dfFiltered = dfFiltered[dfFiltered['nc_detail'].str.contains(searchText, regex=False)]  # search on text entered
+    st.dataframe(dfFiltered[disp_cols], height=600)
 
 
-    with col4:  # download button and file
-        csv = dfFiltered.to_csv().encode('utf-8')  # write df to csv
-        btnMsg = 'Download ' + str(dfFiltered.shape[0]) + ' Records as CSV'
-        st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+    #with col4:  # download button and file
+    csv = dfFiltered.to_csv().encode('utf-8')  # write df to csv
+    btnMsg = 'Download ' + str(dfFiltered.shape[0]) + ' Records as CSV'
+    st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
 
     print('----------------')  # --------------------------------------------
 
-    with st.expander('RAW DATA'):
-        st.dataframe(df)
-        csv = df.to_csv().encode('utf-8')  # write df to csv
-        btnMsg = 'Download ALL Records as CSV'
-        st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+    # with st.expander('RAW DATA'):
+    #     st.dataframe(df)
+    #     csv = df.to_csv().encode('utf-8')  # write df to csv
+    #     btnMsg = 'Download ALL Records as CSV'
+    #     st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
