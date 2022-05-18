@@ -1,6 +1,9 @@
-import logging, sqlite3, sys, traceback
+import logging, sqlite3, sys, traceback,logging
 import pandas as pd
 import streamlit as st
+
+original_stdout = sys.stdout
+logs = True
 
 @st.cache (ttl=1200, allow_output_mutation=True)  #, allow_output_mutation=True)
 def get_data(db, tbl):
@@ -32,6 +35,12 @@ def save_data(df, db, tbl, lookup_key):
 
 
 def save_data_by_kwery(db, tbl, df):
+    vslName = ""
+    if logs:
+        sys.stdout = open('exportstatus.txt', 'w')
+    logfilename = r'C:/Shares/DRS2022/drsexoprt.log'
+    format_string = '%(levelname)s: %(asctime)s: %(message)s'
+    logging.basicConfig(filename=logfilename, level=logging.INFO, format=format_string)
     dbHeaders = df.columns.values
     conn1 = sqlite3.connect(db)
     cursor = conn1.cursor()
@@ -47,14 +56,14 @@ def save_data_by_kwery(db, tbl, df):
             query = 'INSERT OR REPLACE INTO "%s" ({0}) VALUES ({1})' % tbl  # Make SQL query with (headers / col name) VALUES (values, for now '?') for each row
             query = query.format(','.join(columns),
                                  ','.join('?' * len(columns)))  # = column names, followed by same number of '?'
-            c = "Row # %d updated: ID %s" % (count, row[0])
-            # st.write(c)
+            c = f'Row # {count}d updated: ID {row[0]}'
+            print(c)
             # TODO implement logging to file
             logging.info(c)
-            logging.info(f'updated. ID: {row[0]}')
+            #logging.info(f'updated. ID: {row[0]}')
             cursor.execute(query, list(row))  # run the qyery with actual values which will get imported
             conn1.commit()
-            # st.info(f'DB updated. No errors found for{vslName}')
+            print(f'----------------------DB updated. No errors found for{vslName}')
 
     except sqlite3.Error as er:
         st.write('SQLite error: %s' % (' '.join(er.args)))
@@ -66,9 +75,13 @@ def save_data_by_kwery(db, tbl, df):
     except Exception as e:
         st.write('Some error occurred!')
         st.write(e)
-        # logging.error(e)
+        print('Some error occurred!')
+        print(e)
+        logging.error(e)
     finally:
         conn1.close()
+    sys.stdout.close()
+    sys.stdout = original_stdout
 
 
 def run_kwery(database, qry):
