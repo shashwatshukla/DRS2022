@@ -5,7 +5,7 @@ from helpers import get_data
 def filtered_Data():
     df = []
     master_db = r'database/mms_master.sqlite'  # destination db
-    st.header('DR Sender 2022')
+    st.title('DR sender data viewer')
     #  Load dataframe
     conn = sqlite3.connect(master_db)
     df = get_data(master_db,'drsend')
@@ -64,7 +64,7 @@ def filtered_Data():
 
         statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
         docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
-    # st.write(flt_list)
+
 
     with filterContainer:
         vslListPerFlt = sum([fltList[x] for x in fltName], [])  # get vsl names as per flt selected and flatten the list (sum)

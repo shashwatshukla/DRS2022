@@ -11,7 +11,8 @@ disp_cols = []
 output = BytesIO
 
 def make_NewDRS():
-    # st.set_page_config(page_title='Generate new DR sender', layout='wide')
+    curr_year = str(datetime.datetime.now().year)
+    st.title(f'Generate {curr_year} active DR sender')
     disp_cols = ['dt_ocurred','ser_no','status','nc_detail', 'target_dt', 'done_dt', 'est_cause_ship', 'init_action_ship',
                  'init_action_ship_dt',
                  'final_action_ship', 'final_action_ship_dt', 'co_eval',
@@ -23,9 +24,9 @@ def make_NewDRS():
             xlsmbyte = filetoread.read()
             return xlsmbyte
 
-    curr_year = str(datetime.datetime.now().year)
+
     print(curr_year,'--------------------------')
-    st.markdown(f'Generate new **{curr_year} DR sender**')
+    #st.subheader(f'Generate new **{curr_year} DR sender**')
     df_rawData = get_data(r'database/mms_master.sqlite', 'drsend')  # get raw data to work upon
     vsl_list = sorted(list(df_rawData['ship_name'].unique()))
     with st.form(key='Process'):

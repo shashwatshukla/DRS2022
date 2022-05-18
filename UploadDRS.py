@@ -1,8 +1,9 @@
 import streamlit as st, pandas as pd
 from helpers import get_data, save_data_by_kwery, run_kwery
-# from streamlit import caching
+
 
 def upload_drs():
+    st.title('Upload active DR sender')
     mast_db = 'database/mms_master.sqlite'
 
     upldcol1, upldcol2, upldcol3 = st.columns(3)
@@ -10,7 +11,7 @@ def upload_drs():
     df = get_data(r'database/mms_master.sqlite', 'drsend')
     drsHeaders = df.columns.values
     with upldcol1:
-        uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
+        uploaded_file = st.file_uploader('Upload updated DR Sender.', type=['xlsm'])
     if uploaded_file is not None:
 
         dfVslDrs = pd.read_excel(uploaded_file, sheet_name='DRSEND', skiprows=6, dtype=str,

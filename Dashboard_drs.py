@@ -1,13 +1,11 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-import sqlite3 as sq
-from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
-from st_aggrid.grid_options_builder import GridOptionsBuilder
 from helpers import get_data, get_vessel_byfleet
 
 
 def dashboard():
+    st.title('Dashboard', anchor=None)
     # ___________________________Declarations_____________________________
     global allShips  # to hold list of all fleet shipnames for making graphs
     db = r'database/mms_master.sqlite'
@@ -55,11 +53,6 @@ def dashboard():
 
     # _______________________UI elements and logic_____________________
 
-    # ____________________AGgrid_________________
-
-    grid_height = st.sidebar.number_input("Grid height", min_value=200, max_value=800, value=300)
-    grid_theme = st.sidebar.selectbox('Grid theme', options=['streamlit', 'light', 'dark', 'blue', 'fresh', 'material'],
-                                      index=0)
     filterContainer = st.expander('Overdue deficiencies past extension date')
     col1, col2,col3 = filterContainer.columns(3)
     with col3:
