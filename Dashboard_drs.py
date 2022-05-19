@@ -60,13 +60,13 @@ def dashboard():
         btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
         st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
     with col2:
-        active_vsl = st.radio('Select Vessels', ('All', 'Active'))
+        active_vsl = st.radio('Select Vessels', ('Active','All' ))
         if active_vsl == 'All':
             vsl_list_fleetwise = get_vessel_byfleet(0)
         else:
             vsl_list_fleetwise = get_vessel_byfleet(1)
     with col1:
-        fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='All vessels',key='fleet_exp1')
+        fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='MMS-TOK',key='fleet_exp1')
         docking = st.checkbox("Remove DD Jobs", value=True)
 
         with filterContainer:
