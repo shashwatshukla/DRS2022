@@ -9,7 +9,7 @@ import datetime
 
 # ___________________________Declarations_____________________________
 curr_year = str(datetime.datetime.now().year)
-db = r'database/mms_master.sqlite'
+db = r'assets/mms_master.sqlite'
 disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
              'ser_no',
              'req_num', 'est_cause_ship',

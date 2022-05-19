@@ -4,7 +4,7 @@ from helpers import get_data
 
 def filtered_Data():
     df = []
-    master_db = r'database/mms_master.sqlite'  # destination db
+    master_db = r'assets/mms_master.sqlite'  # destination db
     st.title('DR sender data viewer')
     #  Load dataframe
     conn = sqlite3.connect(master_db)
@@ -18,7 +18,7 @@ def filtered_Data():
     #                               "SUM (CASE WHEN status= 'No' then 1 ELSE 0 END) as 'OK' "
     #                               "from drsend GROUP by ship_name", conn)
     conn.close()
-    conn = sqlite3.connect(r'database/mms_master.sqlite')
+    conn = sqlite3.connect(r'assets/mms_master.sqlite')
     dfvslMaster = pd.read_sql_query(
         'select vslName, vsl_imo, vslCode, vslFleet, cast(statusActiveInactive as text) from vessels', conn)
     dffltMaster = pd.read_sql_query('select fltNameUID, fltMainName, fltLocalName from fleet', conn)
@@ -45,8 +45,8 @@ def filtered_Data():
     col1, col2, col3, col4 = filterContainer.columns(4)
 
     with col2:
-        df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
-        df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+        df_vessel = get_data(r'assets/mms_master.sqlite', 'vessels')
+        df_fleet = get_data(r'assets/mms_master.sqlite', 'fleet')
         flt_list = dict(df_fleet[['fltLocalName', 'fltLocalName']].values)
         df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                              how='left')  # brig col from vessel to drsend dataframe

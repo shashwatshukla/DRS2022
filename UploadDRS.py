@@ -4,11 +4,11 @@ from helpers import get_data, save_data_by_kwery, run_kwery
 
 def upload_drs():
     st.title('Upload DR sender')
-    mast_db = 'database/mms_master.sqlite'
+    mast_db = 'assets/mms_master.sqlite'
 
     upldcol1, upldcol2, upldcol3 = st.columns(3)
 
-    df = get_data(r'database/mms_master.sqlite', 'drsend')
+    df = get_data(r'assets/mms_master.sqlite', 'drsend')
     drsHeaders = df.columns.values
     with upldcol1:
         uploaded_file = st.file_uploader('Upload updated DR Sender.', type=['xlsm'])

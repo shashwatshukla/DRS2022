@@ -5,7 +5,7 @@ import sqlite3
 def upload_drs():
     upldcol1,upldcol2,upldcol3=st.columns(3)
 
-    df = get_data(r'database/mms_master.sqlite', 'drsend')
+    df = get_data(r'assets/mms_master.sqlite', 'drsend')
     drsHeaders = df.columns.values
     with upldcol1:
         uploaded_file = st.file_uploader('Upload an updated DR Sender file here.', type=['xlsm'])
@@ -33,9 +33,9 @@ def upload_drs():
             dfNoCommon = df[~df['DRS_ID'].isin(drsID)]  # remove all rows with common DRS_ID from master
             dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
             st.dataframe(dfVslDrs)  # display DF
-            dfdtype = get_data(r'database/mms_master.sqlite', 'drsend_schema')
+            dfdtype = get_data(r'assets/mms_master.sqlite', 'drsend_schema')
             drs_schema = dict(zip(dfdtype.col_name, dfdtype.d_type))
-            conn = sqlite3.connect(r'../database/mms_master.sqlite')  # write complete df to new database for check
+            conn = sqlite3.connect(r'../assets/mms_master.sqlite')  # write complete df to new database for check
 
             #---Check and remove entries with the word <delete> in co_eval ---------------------------------------------------------
 
@@ -54,7 +54,7 @@ def upload_drs():
                 dfUpdated.to_sql('drsend', conn, if_exists='replace', index=False, dtype=drs_schema)
                 # done run query for updating the drsend_deleted tbl with new entries
                 if delete_exists:
-                    save_data(df_deleted,r'database/mms_master.sqlite','drsend_deleted','DRS_ID')
+                    save_data(df_deleted,r'assets/mms_master.sqlite','drsend_deleted','DRS_ID')
                 deleted_record = len(df_deleted)
                 st.info(f"{old_records} old records and {new_records} new records updated. {deleted_record} records deleted from database")
             if cancel_btn:

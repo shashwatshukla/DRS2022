@@ -8,7 +8,7 @@ def dashboard():
     st.title('Dashboard', anchor=None)
     # ___________________________Declarations_____________________________
     global allShips  # to hold list of all fleet shipnames for making graphs
-    db = r'database/mms_master.sqlite'
+    db = r'assets/mms_master.sqlite'
     disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
                  'ser_no',
                  'req_num', 'est_cause_ship',
@@ -21,7 +21,7 @@ def dashboard():
     df_raw = get_data(db, 'drsend')
     df_openDRS = df_raw.loc[df_raw.status == 'OPEN']  # get DR sender data
 
-    df_fleet = get_data(r'database/mms_master.sqlite',
+    df_fleet = get_data(r'assets/mms_master.sqlite',
                         'fleet')  # get list of fleet names for selecting vesssels fleetwise
 
     df_vsl = get_data(db, 'vessels')  # Get active  fleet vessel names and IMO
