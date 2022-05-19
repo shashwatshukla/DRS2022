@@ -27,7 +27,7 @@ person = df_mailid[df_mailid['siEmail'] == mailid]
 if len(person==1):
 
     st.sidebar.info(f'Welcome {person.iloc[0, 0]}')
-    sb_sel = st.sidebar.radio('Select Page', options=['Dashboard','View/Filter Data', 'Download DR sender', 'Upload DR sender'])
+    sb_sel = st.sidebar.radio('Select Page', options=['Dashboard','View/Filter Data', 'Upload DR sender', 'Download DR sender'])
     if sb_sel == 'Download DR sender':
         make_NewDRS()
     if sb_sel == 'View/Filter Data':

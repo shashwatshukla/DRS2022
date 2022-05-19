@@ -77,8 +77,9 @@ def dashboard():
             if docking:
                 df_active = df_active.loc[df_active['ext_rsn'] != 'Docking']
             df_active = df_active.query("ship_name == @vslName")
+            df_active[['ext_rsn']]=df_active[['ext_rsn']].fillna('Update ext. reason')
             df_active = df_active[disp_cols]
-            st.write(df_active)
+
             # gb = GridOptionsBuilder.from_dataframe(df_active)
             # # gb.configure_selection(selection_mode='multiple', use_checkbox=True, groupSelectsChildren=True,
             # # groupSelectsFiltered=True)
@@ -111,17 +112,17 @@ def dashboard():
             df_xaxis.sort_values(by='ship_name')  # sort
             filter1 = df_xaxis['ship_name'].isin(vslName)
             df_xaxis = df_xaxis[filter1]
-            df_xaxis = df_xaxis.replace({'ship_name': allshipCode})
-            fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200, color='Count',
+            #df_xaxis = df_xaxis.replace({'ship_name': allshipCode})
+            fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400, width=1200,
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
-                         title="<b>Count of extended overdue not closed till today</b>",
-                         color_discrete_sequence=px.colors.qualitative.Pastel)
+                         title="<b>Count of extended overdue not closed till today</b>",text_auto=True)
             # color_continuous_scale=px.colors.sequential.Burg)
             df_active = df_active.sort_values(by='ship_name')
-            df_active = df_active.replace({'ship_name': allshipCode})
-
+            #df_active = df_active.replace({'ship_name': allshipCode})
+            #df_active.mask(df_active['ext_rsn'] == "", 'Update ext. Reason', inplace=True)
+            df_active['ext_rsn'].loc[(df_active['ext_rsn']=="")]='update ext. reason'
             fig2 = px.bar(df_active, y=["ship_name"], x="ext_rsn", height=500, width=1200, color='ext_rsn',
-                          title="<b>Reason for Extended overdue not closed till today</b>",
+                          title="<b>Vessels with open Extended Items by Reason</b>",
                           color_discrete_sequence=px.colors.qualitative.Pastel)
             fig.update_layout(legend_orientation='h')
             fig.update_xaxes(categoryorder='array',
@@ -130,6 +131,8 @@ def dashboard():
             fig2.update_layout()
             st.plotly_chart(fig)
             st.plotly_chart(fig2)
+            st.write(df_active)
+
             # fig3 = px.colors.sequential.swatches()
             # fig4 = px.colors.qualitative.swatches()
             # st.plotly_chart(fig3)

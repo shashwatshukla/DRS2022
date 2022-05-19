@@ -12,7 +12,7 @@ output = BytesIO
 
 def make_NewDRS():
     curr_year = str(datetime.datetime.now().year)
-    st.title(f'Generate {curr_year} active DR sender')
+    st.title(f'Generate {curr_year}  DR sender')
     disp_cols = ['dt_ocurred','ser_no','status','nc_detail', 'target_dt', 'done_dt', 'est_cause_ship', 'init_action_ship',
                  'init_action_ship_dt',
                  'final_action_ship', 'final_action_ship_dt', 'co_eval',
