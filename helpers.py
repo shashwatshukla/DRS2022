@@ -19,7 +19,7 @@ def get_data(db, tbl):
             df_data[someCol] = pd.to_datetime(df_data[someCol], errors='coerce').apply(
                 lambda x: x.date())  # , format="%Y/%m/%d")#.dt.date
     df_data.replace({pd.NaT: ''}, inplace=True)  # remove the NaT values in missing dates
-    df_data = df_data.applymap(str)
+    df_data = df_data.applymap(str) # convert all values to string
     return df_data
 
 
