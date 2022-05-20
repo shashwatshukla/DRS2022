@@ -128,7 +128,6 @@ def dashboard():
             st.plotly_chart(fig)
             st.plotly_chart(fig2)
     st.write(df_active)
-
     csv = df_active.to_csv().encode('utf-8')  # write df to csv
     btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
     st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
