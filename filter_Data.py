@@ -72,7 +72,7 @@ def filtered_Data():
         df_sel_vsl_counts = (df_counts[df_counts['ship_name'].isin(vslName)])
         #st.write(df_sel_vsl_counts)
     fig = px.bar(df_sel_vsl_counts, x="ship_name", y=["Closed", "Open"], barmode='stack', height=400,width=1000)
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
 
     with col3:
         criticalEq = st.multiselect('Critical Equipment', options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
