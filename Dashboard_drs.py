@@ -17,7 +17,7 @@ def dashboard():
                  'insp_detail',
                  'update_by', 'update_dt']  # list of cols to be displayed on the screen
 
-    # _______________Data collection_______________________
+    # _______________Data collection______________________
     df_raw = get_data(db, 'drsend')
     df_openDRS = df_raw.loc[df_raw.status == 'OPEN']  # get DR sender data
 
