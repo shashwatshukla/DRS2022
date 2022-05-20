@@ -6,7 +6,7 @@ from Dashboard_drs import dashboard
 from helpers import get_data
 
 st.set_page_config(page_title='DR Sender', layout='wide')
-df_mailid = get_data(r'database/mms_master.sqlite','si')
+df_mailid = get_data(r'assets/mms_master.sqlite','si')
 df_mailid=df_mailid[['siName','siEmail']]
 
 hide_streamlit_style = """

@@ -153,7 +153,7 @@ with upldSection:
         st.write( len(df[df['DRS_ID'].isin(drsID)]), "common items found and updated with latest info.",)
         dfUpdated = pd.concat([dfNoCommon, dfVslDrs], ignore_index=True)  # add all the new rows to dataframe
         st.dataframe(dfVslDrs)   # diplay DF
-        conn = sqlite3.connect(r'database/new.sqlite')    # write complete data to new database for check
+        conn = sqlite3.connect(r'assets/new.sqlite')    # write complete data to new database for check
         dfUpdated.to_sql('dr_sender',conn,if_exists='replace', index=False)
         conn.close()
 

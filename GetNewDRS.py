@@ -27,7 +27,7 @@ def make_NewDRS():
 
     print(curr_year,'--------------------------')
     #st.subheader(f'Generate new **{curr_year} DR sender**')
-    df_rawData = get_data(r'database/mms_master.sqlite', 'drsend')  # get raw data to work upon
+    df_rawData = get_data(r'assets/mms_master.sqlite', 'drsend')  # get raw data to work upon
     vsl_list = sorted(list(df_rawData['ship_name'].unique()))
     with st.form(key='Process'):
         col1, col2, col3 = st.columns(3)

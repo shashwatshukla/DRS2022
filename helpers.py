@@ -2,8 +2,7 @@ import logging, sqlite3, sys, traceback,logging
 import pandas as pd
 import streamlit as st
 
-original_stdout = sys.stdout
-logs = True
+
 
 @st.cache (ttl=1200, allow_output_mutation=True)  #, allow_output_mutation=True)
 def get_data(db, tbl):
@@ -35,10 +34,12 @@ def save_data(df, db, tbl, lookup_key):
 
 
 def save_data_by_kwery(db, tbl, df):
+    original_stdout = sys.stdout
+    logs = True
     vslName = ""
     if logs:
         sys.stdout = open('exportstatus.txt', 'w')
-    logfilename = r'C:/Shares/DRS2022/drsexoprt.log'
+    logfilename = r'drsexoprt.log'
     format_string = '%(levelname)s: %(asctime)s: %(message)s'
     logging.basicConfig(filename=logfilename, level=logging.INFO, format=format_string)
     dbHeaders = df.columns.values
@@ -56,14 +57,14 @@ def save_data_by_kwery(db, tbl, df):
             query = 'INSERT OR REPLACE INTO "%s" ({0}) VALUES ({1})' % tbl  # Make SQL query with (headers / col name) VALUES (values, for now '?') for each row
             query = query.format(','.join(columns),
                                  ','.join('?' * len(columns)))  # = column names, followed by same number of '?'
-            c = f'Row # {count}d updated: ID {row[0]}'
+            c = f'Row # {count} updated: ID {row[0]}'
             print(c)
             # TODO implement logging to file
             logging.info(c)
             #logging.info(f'updated. ID: {row[0]}')
             cursor.execute(query, list(row))  # run the qyery with actual values which will get imported
             conn1.commit()
-            print(f'----------------------DB updated. No errors found for{vslName}')
+        print(f'----------------------DB updated. No errors found for{vslName}')
 
     except sqlite3.Error as er:
         st.write('SQLite error: %s' % (' '.join(er.args)))
@@ -100,9 +101,9 @@ def get_table_name(db):
 
 
 def get_vessel_byfleet(status):
-    df_drsend = get_data(r'database/mms_master.sqlite', 'drsend')
-    df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
-    df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+    df_drsend = get_data(r'assets/mms_master.sqlite', 'drsend')
+    df_vessel = get_data(r'assets/mms_master.sqlite', 'vessels')
+    df_fleet = get_data(r'assets/mms_master.sqlite', 'fleet')
     flt_list = dict(df_fleet[['fltLocalName', 'fltLocalName']].values)
     df_merged = pd.merge(df_drsend, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                          how='left')  # brig col from vessel to drsend dataframe

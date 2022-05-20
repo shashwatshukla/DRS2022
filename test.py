@@ -3,7 +3,7 @@ import plotly.express as px
 from helpers import get_data
 st.set_page_config(page_title='DR Sender', layout='wide')
 df = []
-master_db = r'database/mms_master.sqlite'  # destination db
+master_db = r'assets/mms_master.sqlite'  # destination db
 st.header('DR Sender 2022')
 #  Load dataframe
 conn = sqlite3.connect(master_db)
@@ -17,7 +17,7 @@ df_counts = pd.read_sql_query("SELECT ship_name, "
 #                               "SUM (CASE WHEN status= 'No' then 1 ELSE 0 END) as 'OK' "
 #                               "from drsend GROUP by ship_name", conn)
 conn.close()
-conn = sqlite3.connect(r'database/mms_master.sqlite')
+conn = sqlite3.connect(r'assets/mms_master.sqlite')
 dfvslMaster = pd.read_sql_query(
     'select vslName, vsl_imo, vslCode, vslFleet, cast(statusActiveInactive as text) from vessels', conn)
 dffltMaster = pd.read_sql_query('select fltNameUID, fltMainName, fltLocalName from fleet', conn)
@@ -47,8 +47,8 @@ with filt_form:
 
 
     with col2:
-        df_vessel = get_data(r'database/mms_master.sqlite', 'vessels')
-        df_fleet = get_data(r'database/mms_master.sqlite', 'fleet')
+        df_vessel = get_data(r'assets/mms_master.sqlite', 'vessels')
+        df_fleet = get_data(r'assets/mms_master.sqlite', 'fleet')
         flt_list = dict(df_fleet[['fltLocalName', 'fltNameUID']].values)
         df_merged = pd.merge(dfSelected, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
                              how='left')  # brig col from vessel to drsend dataframe
@@ -144,9 +144,9 @@ with st.expander('RAW DATA'):
 
 
 #--------------------for getting vessel names from fleet
-df_drsend = get_data(r'database/mms_master.sqlite','drsend')
-df_vessel = get_data(r'database/mms_master.sqlite','vessels')
-df_fleet = get_data(r'database/mms_master.sqlite','fleet')
+df_drsend = get_data(r'assets/mms_master.sqlite','drsend')
+df_vessel = get_data(r'assets/mms_master.sqlite','vessels')
+df_fleet = get_data(r'assets/mms_master.sqlite','fleet')
 flt_list=dict(df_fleet[['fltLocalName','fltNameUID']].values)
 df_merged = pd.merge(df_drsend,df_vessel[['vsl_imo','statusActiveInactive','vslFleet']], on = 'vsl_imo',how = 'left') # brig col from vessel to drsend dataframe
 df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == 0], inplace = True)
