@@ -133,8 +133,8 @@ def dashboard():
     st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
 
 
-            # fig3 = px.colors.sequential.swatches()
-            # fig4 = px.colors.qualitative.swatches()
-            # st.plotly_chart(fig3)
-            # st.plotly_chart(fig4)
+    # fig3 = px.colors.sequential.swatches()
+    # fig4 = px.colors.qualitative.swatches()
+    # st.plotly_chart(fig3)
+    # st.plotly_chart(fig4)
 
