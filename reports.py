@@ -1,16 +1,14 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-import sqlite3 as sq
-# from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, JsCode
-# from st_aggrid.grid_options_builder import GridOptionsBuilder
 from helpers import get_data, get_vessel_byfleet
 import datetime
-
+st.set_page_config(page_title='DR Sender', layout='wide')
 # ___________________________Declarations_____________________________
 curr_year = str(datetime.datetime.now().year)
+todaydt=pd.Timestamp('today').date()
 db = r'assets/mms_master.sqlite'
-disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
+disp_cols = ['ship_name','overdue', 'dt_ocurred', 'target_dt', 'ext_dt','done_dt','status', 'nc_detail', 'ext_rsn', 'ext_cmnt', 'co_eval',
              'ser_no',
              'req_num', 'est_cause_ship',
              'init_action_ship', 'init_action_ship_dt',
@@ -21,42 +19,17 @@ disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'ext_dt', 'nc_detail', 'ext
 # _______________Data collection_______________________
 df_rawDRS = get_data(db, 'drsend')
 df_vessels = get_data(db, 'vessels')
-df_si = get_data(db, 'si')
-df_vessels = pd.merge(df_vessels, df_si, left_on='vslTechSI', right_on='SI_UID',how='left')
-df_merged2 = pd.merge(df_rawDRS, df_vessels,on='vsl_imo',how='left')
-st.write(df_vessels)
+df_merged = pd.merge(df_rawDRS, df_vessels[['vsl_imo', 'statusActiveInactive', 'vslFleet','vslMarSI','vslTechSI']], on='vsl_imo',how='left')
+df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'])
 
-filter_cont1 = st.expander('Filters')
-with filter_cont1:
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        docking = st.checkbox("Remove DD Jobs", value=True)
-        dt_today = datetime.date.today()
-        dateFmTo = st.date_input('Select dates (ignore any errors when selecting dates)',
-                                 [(dt_today - datetime.timedelta(days=365 * 1)), dt_today])
-        startDt = dateFmTo[0]
-        endDt = dateFmTo[1]
-    with col2:
-        overdue_status1 = st.checkbox("Open > 90d", key=1)
-        overdue_status2 = st.checkbox("Open > Target dt", key=2)
-        overdue_status3 = st.checkbox("Close > 90d", key=3)
+vsl_list_fleetwise = get_vessel_byfleet(1)
+fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='MMS-TOK',key='fleet_exp1')
+vslListPerFlt = sum([vsl_list_fleetwise[x] for x in fltName], []) # get vsl names as per flt selected and flatten the list (sum)
+vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt))
+df_active_ships_currDRS = df_active_ships.query("ship_name == @vslName and (dt_ocurred.str.contains(@curr_year)"
+                              " or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))", engine='python')
 
-    with col3:
-        active_vsl = st.radio('Select Vessels', ('All', 'Active'), index=1)
-        if active_vsl == 'All':
-            vsl_list_fleetwise = get_vessel_byfleet(0)
-        else:
-            vsl_list_fleetwise = get_vessel_byfleet(1)
-        fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='All vessels',
-                                 key='fleet_exp1')
-
-    vslListPerFlt = sum([vsl_list_fleetwise[x] for x in fltName],
-                        [])  # get vsl names as per flt selected and flatten the list (sum)
-    vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt),
-                             key='vessel_exp1')
-
-df_currDRS = df_rawDRS.query(
-    "ship_name == @vslName and (dt_ocurred.str.contains(@curr_year) or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))",
-    engine='python')
-mask = (df_currDRS['dt_ocurred'] > str(startDt)) & (df_currDRS['dt_ocurred'] <= str(endDt))
-df_currDRS = df_currDRS[mask]
+df_active_ships_currDRS[['dt_ocurred','target_dt', 'done_dt','ext_dt']]=df_active_ships[['dt_ocurred','target_dt', 'done_dt','ext_dt']].apply(pd.to_datetime)
+df_active_ships_currDRS['dt_today']=todaydt
+df_active_ships_currDRS=df_active_ships_currDRS.query("ship_name == @vslName and target_dt<dt_today and status=='OPEN'", engine='python')
+st.write(df_active_ships_currDRS)

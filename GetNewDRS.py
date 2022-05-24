@@ -56,10 +56,14 @@ def make_NewDRS():
                                               copy_origin='format_from_left_or_above')  # shift named ranges in excel to prevent overwriting
                     jobProgress.progress(int(i/numberOfRows*100))
                 ws.range('C1').value = shipName
-
                 f_name = str(date.today()) + ' ' + shipName + ' DRS56.xlsm'
                 new_drs_file = os.path.join('temp', f_name)  # save in temp folder
                 ws.range('A8').options(index=False, header=False).value = df_currDRS  # write dataframe to excel
+                master_name=df_currDRS['capt_name'].iloc[-1]
+                last_update=df_currDRS['dummy2'].iloc[-1]
+                if str(last_update).__contains__('@'):
+                    ws.range('I3').value = last_update
+                ws.range('C4').value = master_name
                 f = book.save(new_drs_file)  # save excel as new file
                 book.close()
                 print (f'saved: {new_drs_file}')

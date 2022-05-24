@@ -54,17 +54,16 @@ def dashboard():
     # _______________________UI elements and logic_____________________
 
     filterContainer = st.expander('Overdue deficiencies past extension date')
-    col1, col2,col3 = filterContainer.columns(3)
-    with col3:
-        csv = df_active.to_csv().encode('utf-8')  # write df to csv
-        btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
-        st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+    col1, col2 = filterContainer.columns(2)
     with col2:
-        active_vsl = st.radio('Select Vessels', ('Active','All' ))
-        if active_vsl == 'All':
-            vsl_list_fleetwise = get_vessel_byfleet(0)
-        else:
-            vsl_list_fleetwise = get_vessel_byfleet(1)
+        rsn_list = df_active['ext_rsn'].unique()
+        ext_rsn=st.multiselect('Select Reasons:',options=rsn_list,default=rsn_list[0:5])
+
+        # active_vsl = st.radio('Select Vessels', ('Active','All' ))
+        # if active_vsl == 'All':
+        #     vsl_list_fleetwise = get_vessel_byfleet(0)
+        # else:
+        vsl_list_fleetwise = get_vessel_byfleet(1)
     with col1:
         fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='MMS-TOK',key='fleet_exp1')
         docking = st.checkbox("Remove DD Jobs", value=True)
@@ -74,9 +73,7 @@ def dashboard():
             vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt),key='vessel_exp1')
 
         with filterContainer:
-            if docking:
-                df_active = df_active.loc[df_active['ext_rsn'] != 'Docking']
-            df_active = df_active.query("ship_name == @vslName")
+            df_active = df_active.query("ship_name == @vslName and ext_rsn==@ext_rsn")
             df_active[['ext_rsn']]=df_active[['ext_rsn']].fillna('Update ext. reason')
             df_active = df_active[disp_cols]
 
@@ -92,6 +89,8 @@ def dashboard():
             # response = AgGrid(df_active, editable=True, fit_columns_on_grid_load=False, conversion_errors='coerce',
             #                   gridOptions=gridOptions, enable_enterprise_modules=True,
             #                   height=grid_height, theme=grid_theme)
+
+
 
         # _____________________________Graphs Section______________________________
         with filterContainer:
@@ -130,6 +129,13 @@ def dashboard():
             st.plotly_chart(fig, use_container_width=True)
             st.plotly_chart(fig2, use_container_width=True)
             st.write(df_active)
+            st.plotly_chart(fig)
+            st.plotly_chart(fig2)
+    st.write(df_active)
+    csv = df_active.to_csv().encode('utf-8')  # write df to csv
+    btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
+    st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
+
 
             # fig3 = px.colors.sequential.swatches()
             # fig4 = px.colors.qualitative.swatches()
