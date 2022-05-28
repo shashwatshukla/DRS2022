@@ -1,7 +1,7 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-from matplotlib import pyplot as plt
+
 
 from helpers import get_data, get_vessel_byfleet
 import datetime
@@ -51,8 +51,9 @@ cnt_open_past_90=df_open_past_90['ship_name'].value_counts().rename_axis('Vessel
 
 
 #st.write(df_open_past_90.groupby("ship_name")["status"].count())
-col1,col2,col3,col4,col5=st.columns(5)
-with col1:
-    st.write(cnt_open_past_90)
-    fig=px.bar(cnt_open_past_90,x='Vessels',y='Count of Open > 90 days')
-    st.plotly_chart(fig)
+
+fig=px.bar(cnt_open_past_90,color='Vessels',x='Vessels',y='Count of Open > 90 days')
+df_open_past_90.nc_detail=df_open_past_90.nc_detail.str.wrap(50)
+df_open_past_90.nc_detail=df_open_past_90.nc_detail.apply(lambda x : x.replace('\n','<br>') )
+fig2=px.bar(df_open_past_90,x='ship_name',y=df_open_past_90['nc_detail'].value_counts(),hover_data=['dt_ocurred','rpt_by','nc_detail','status'],color='ship_name')
+st.plotly_chart(fig2,use_container_width=True)
