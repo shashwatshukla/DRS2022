@@ -1,12 +1,10 @@
 import plotly.express as px
 import streamlit as st
 import pandas as pd
-
-
 from helpers import get_data, get_vessel_byfleet
 import datetime
 from datetime import timedelta
-import seaborn as sns
+
 st.set_page_config(page_title='DR Sender', layout='wide')
 
 # ___________________________Declarations_____________________________
@@ -47,48 +45,52 @@ df_open_past_90=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(
 df_closed_od=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
                                      & (df_active_ships_currDRS.dt_ocurred+timedelta(days=90)<df_active_ships_currDRS.done_dt)
                                      & (df_active_ships_currDRS.status=='CLOSE')]
-#cnt_open_past_90=df_open_past_90['ship_name'].value_counts().rename_axis('Vessels').reset_index(name='Count of Open > 90 days')
+
+cnt_open_past_90=df_open_past_90['ship_name'].value_counts().rename_axis('Vessels').reset_index(name='Count of Open > 90 days')
+
+
 #st.write(df_open_past_90.groupby("ship_name")["status"].count())
 df_open_past_90.nc_detail=df_open_past_90.nc_detail.str.wrap(50)
 df_open_past_90.nc_detail=df_open_past_90.nc_detail.apply(lambda x : x.replace('\n','<br>') )
 fig_open_past_target=px.bar(df_open_past_target,x='ship_name',y=df_open_past_target['DRS_ID'].value_counts()
-            ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'])
+            ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'],color='ship_name')
 
 
 fig_open_past_target.update_layout(
     title="Open Def. Past target date",
     xaxis_title="Vessels",
     yaxis_title="Count of Overdue",
-    legend_title="Legend Title",
+    showlegend=False,
     font=dict(
-        family="Courier New, monospace",
+        family="Lato",
         size=15,
-        color="Red"
+        color="Black"
     ))
 
 fig_open_past_90=px.bar(df_open_past_90,x='ship_name',y=df_open_past_90['DRS_ID'].value_counts()
-            ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'])
+            ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'],color='ship_name')
 fig_open_past_90.update_layout(
     title="Open Def. Past 90 Days",
     xaxis_title="Vessels",
     yaxis_title="Count of Overdue",
-    legend_title="Legend Title",
+    showlegend=False,
     font=dict(
-        family="Courier New, monospace",
+        family="Lato",
         size=15,
-        color="Red"
+        color="Black"
     ))
 
 fig_closed_od=px.bar(df_closed_od,x='ship_name',y=df_closed_od['DRS_ID'].value_counts()
-            ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status'])
+            ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status'],color='ship_name')
 fig_closed_od.update_layout(
     title="Closed but Ovrdue",
     xaxis_title="Vessels",
     yaxis_title="Count of Overdue",
+    showlegend=False,
     font=dict(
-        family="Courier New, monospace",
+        family="Lato",
         size=15,
-        color="Red"
+        color="Black"
     ))
 
 st.plotly_chart(fig_open_past_target,use_container_width=True)
