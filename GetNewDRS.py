@@ -37,7 +37,7 @@ def make_NewDRS():
         btn = st.form_submit_button('Confirm')
     #bt=st.button('Proceed')
         if btn:
-            st.markdown(f'{shipName} DR Sender being prepared. Please wait....')
+            # st.markdown(f'{shipName} DR Sender being prepared. Please wait....')
             df_rawData[['delay_hr', 'downtime_hr', 'VET_risk']] = df_rawData[['delay_hr', 'downtime_hr', 'VET_risk']] \
                 .apply(pd.to_numeric, errors='coerce', axis=1)  # Convert to prevent errors
 
@@ -68,10 +68,6 @@ def make_NewDRS():
                 book.close()
                 print (f'saved: {new_drs_file}')
                 jobProgress.progress(100)
-                #app.quit()
-
-            with col2:
-                st.info(f'Done... {shipName} DR Sender has {len(df_currDRS)} entries for {curr_year}.')
             st.write(df_currDRS[disp_cols])  # display only selected columns
 
         #app.quit()
