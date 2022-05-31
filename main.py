@@ -26,7 +26,6 @@ st.session_state.id = mailid
 person = df_mailid[df_mailid['siEmail'] == mailid]
 
 if len(person==1):
-
     st.sidebar.info(f'Welcome {person.iloc[0, 0]}')
     sb_sel = st.sidebar.radio('Select Page', options=['Dashboard','View/Filter Data', 'Upload DR sender', 'Download DR sender','Overdue Reports'])
     if sb_sel == 'Download DR sender':

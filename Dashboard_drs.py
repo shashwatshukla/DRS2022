@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 from helpers import get_data, get_vessel_byfleet
 
-
 def dashboard():
     st.title('Dashboard', anchor=None)
     # ___________________________Declarations_____________________________
@@ -47,9 +46,6 @@ def dashboard():
     mask = (pd.to_datetime('today') > df_active_drs['target_dt']) & (
                 pd.to_datetime('today') > df_active_drs['ext_dt'])  # ext date is before
     df_active = df_active_drs.loc[mask]
-    # -------------------------------------------------------------------
-
-
 
     # _______________________UI elements and logic_____________________
 
@@ -58,7 +54,6 @@ def dashboard():
     with col2:
         rsn_list = df_active['ext_rsn'].unique()
         ext_rsn=st.multiselect('Select Reasons:',options=rsn_list,default=rsn_list[0:5])
-
         # active_vsl = st.radio('Select Vessels', ('Active','All' ))
         # if active_vsl == 'All':
         #     vsl_list_fleetwise = get_vessel_byfleet(0)
@@ -89,8 +84,6 @@ def dashboard():
             # response = AgGrid(df_active, editable=True, fit_columns_on_grid_load=False, conversion_errors='coerce',
             #                   gridOptions=gridOptions, enable_enterprise_modules=True,
             #                   height=grid_height, theme=grid_theme)
-
-
 
         # _____________________________Graphs Section______________________________
         with filterContainer:
@@ -135,7 +128,6 @@ def dashboard():
     csv = df_active.to_csv().encode('utf-8')  # write df to csv
     btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
     st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
-
 
             # fig3 = px.colors.sequential.swatches()
             # fig4 = px.colors.qualitative.swatches()

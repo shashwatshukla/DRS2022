@@ -12,6 +12,7 @@ def overdue_reports():
     curr_year = str(datetime.datetime.now().year)
     todaydt = str(pd.Timestamp('today').date())
     db = r'assets/mms_master.sqlite'
+    st.title('DRS Overdue status')
 
     # _______________Data collection_______________________
     df_rawDRS = get_data(db, 'drsend')
@@ -53,7 +54,7 @@ def overdue_reports():
                                             & (df_active_ships_currDRS.ext_rsn=='')] # OPEN and more than 90 days without valid reason
     df_closed_od=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
                                          & (df_active_ships_currDRS.dt_ocurred+timedelta(days=90)<df_active_ships_currDRS.done_dt)
-                                         & (df_active_ships_currDRS.status=='CLOSE')] # CLOSED in more than 90 days
+                                         & (df_active_ships_currDRS.status=='CLOSE') & (df_active_ships_currDRS.ext_rsn!='Docking')] # CLOSED in more than 90 days
     #st.write(df_open_past_90.groupby("ship_name")["status"].count())
 
     #----------------------------Graph for OPEN and more than target date
@@ -88,7 +89,7 @@ def overdue_reports():
     df_closed_od.nc_detail=df_closed_od.nc_detail.str.wrap(50)
     df_closed_od.nc_detail=df_closed_od.nc_detail.apply(lambda x : x.replace('\n','<br>') )
     fig_closed_od=px.bar(df_closed_od,x='ship_name',y=df_closed_od['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status'],color_discrete_sequence=px.colors.qualitative.Pastel)
+                ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status','ext_rsn'],color_discrete_sequence=px.colors.qualitative.Pastel)
     fig_closed_od.update_layout(
         title="Closed but Ovrdue",
         xaxis_title="Vessels",
