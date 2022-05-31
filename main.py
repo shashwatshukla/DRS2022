@@ -4,6 +4,7 @@ from filter_Data import filtered_Data
 from UploadDRS import upload_drs
 from Dashboard_drs import dashboard
 from helpers import get_data
+from reports import overdue_reports
 
 st.set_page_config(page_title='DR Sender', layout='wide')
 df_mailid = get_data(r'assets/mms_master.sqlite','si')
@@ -27,7 +28,7 @@ person = df_mailid[df_mailid['siEmail'] == mailid]
 if len(person==1):
 
     st.sidebar.info(f'Welcome {person.iloc[0, 0]}')
-    sb_sel = st.sidebar.radio('Select Page', options=['Dashboard','View/Filter Data', 'Upload DR sender', 'Download DR sender'])
+    sb_sel = st.sidebar.radio('Select Page', options=['Dashboard','View/Filter Data', 'Upload DR sender', 'Download DR sender','Overdue Reports'])
     if sb_sel == 'Download DR sender':
         make_NewDRS()
     if sb_sel == 'View/Filter Data':
@@ -36,5 +37,7 @@ if len(person==1):
         upload_drs()
     if sb_sel == 'Dashboard':
         dashboard()
+    if sb_sel=='Overdue Reports':
+        overdue_reports()
 else:
     st.sidebar.info('MMS mail id required to proceed......')
