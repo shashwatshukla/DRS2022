@@ -34,7 +34,7 @@ def make_NewDRS():
         with col1:
             shipName = st.selectbox('Select Vessel', vsl_list)# Choose vessel from list of shipnames
 
-        btn = st.form_submit_button('Confirm')
+        btn = st.form_submit_button('Make DR Sender')
     #bt=st.button('Proceed')
         if btn:
             # st.markdown(f'{shipName} DR Sender being prepared. Please wait....')
