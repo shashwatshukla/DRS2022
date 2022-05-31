@@ -6,7 +6,7 @@ import datetime
 from datetime import timedelta
 
 
-def overdue_reports():
+def dummy():
     # ___________________________Declarations_____________________________
 
     curr_year = str(datetime.datetime.now().year)
@@ -134,6 +134,10 @@ def overdue_reports():
     with col3:
         st.plotly_chart(fig_closed_od, use_container_width=True)
 
+def overdue_reports():
+    st.title('Overdue Report')
+    st.info('Under construction...')
+
 if __name__ == '__main__':
     st.set_page_config(page_title='DR Sender', layout='wide')
-    overdue_reports()
+    dummy()
