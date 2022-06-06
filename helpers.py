@@ -106,14 +106,13 @@ def get_vessel_byfleet(status):
     df_fleet = get_data(r'assets/mms_master.sqlite', 'fleet')
     flt_list = dict(df_fleet[['fltLocalName', 'fltLocalName']].values)
     df_merged = pd.merge(df_drsend, df_vessel[['vsl_imo', 'statusActiveInactive', 'vslFleet']], on='vsl_imo',
-                         how='left')  # brig col from vessel to drsend dataframe
+                         how='left')  # bring col from vessel to drsend dataframe
     if status:
         df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0'], inplace=True)
     uniq_ships = list(df_merged['ship_name'].unique())
     group_wise = {
         list(flt_list.keys())[i]: sorted(list(df_merged.loc[df_merged['vslFleet'] == str(list(flt_list.values())[i])
         , 'ship_name'].unique())) for i in range(len(flt_list))}  # all vesssel fleet wise using dict comprehension
-    #group_wise['All vessels'] = sorted(uniq_ships)
     return group_wise
 
 

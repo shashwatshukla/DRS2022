@@ -4,135 +4,215 @@ import pandas as pd
 from helpers import get_data, get_vessel_byfleet
 import datetime
 from datetime import timedelta
+from plotly.subplots import make_subplots
+import numpy as np
 
 
 def dummy():
-    # ___________________________Declarations_____________________________
 
+
+    # ___________________________Declarations_____________________________
     curr_year = str(datetime.datetime.now().year)
     todaydt = str(pd.Timestamp('today').date())
     db = r'assets/mms_master.sqlite'
-    st.title('DRS Overdue status')
+    st.info('Overdue Criteria:  \n'
+            'The following criteria is applied for overdue calculations  \n'
+            'Cat 1: The def is OPEN & not extended & more than 90 days have passed since the date reported & there is no target date.  \n'
+            'Cat 2: The def is OPEN & not extended & target date has passed.  \n'
+            'Cat 3: The def is OPEN & extension date has passed.  \n'
+            'Cat 4: The def is CLOSED but it was closed beyond the extension date in case it was extended.  \n'
+            'Cat 5: The def was not extended but it was closed in more than 90 days.')
 
     # _______________Data collection_______________________
+
     df_rawDRS = get_data(db, 'drsend')
     df_vessels = get_data(db, 'vessels')
-    df_merged = pd.merge(df_rawDRS, df_vessels[['vsl_imo', 'statusActiveInactive', 'vslFleet','vslMarSI','vslTechSI']], on='vsl_imo',how='left')
-    df_active_ships = df_merged.drop(df_merged.index[df_merged['statusActiveInactive'] == '0']) # drop inactive ships
-
+    df_merged = pd.merge(df_rawDRS, df_vessels[
+        ['vsl_imo', 'vslCode', 'statusActiveInactive', 'vslFleet', 'vslMarSI', 'vslTechSI']], on='vsl_imo',
+                         how='left')
+    df_active_ships = df_merged.drop(
+        df_merged.index[df_merged['statusActiveInactive'] == '0'])  # drop inactive ships
+    df_active_ships = df_active_ships.drop(
+        df_active_ships[(df_active_ships.dt_ocurred < '2019-12-23')].index)  # Drop all entries before
     vsl_list_fleetwise = get_vessel_byfleet(1)
     fltName = st.multiselect('Select the Fleet', options=vsl_list_fleetwise.keys(), default='MMS-TOK')
-    vslListPerFlt = sum([vsl_list_fleetwise[x] for x in fltName], []) # get vsl names as per flt selected and flatten the list (sum)
+    vslListPerFlt = sum([vsl_list_fleetwise[x] for x in fltName],
+                        [])  # get vsl names as per flt selected and flatten the list (sum)
+
+    vsl_code = df_active_ships.vslCode.where(df_active_ships.ship_name.isin(vslListPerFlt))
+
+    vsl_code.dropna(axis=0, inplace=True, how=None)
+    vsl_code.sort_values(ascending=True, inplace=True)
+
     vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt))
+    col1, col2, col3 = st.columns(3)
+    with col3:
+        docking = st.checkbox('Include Docking Items')
 
     df_active_ships_currDRS = df_active_ships.query("ship_name == @vslName and (dt_ocurred.str.contains(@curr_year)"
-                                  " or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))", engine='python')
-    df_active_ships_currDRS['dt_today'] = todaydt # add today date col for overdue calc.
+                                                    " or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))",
+                                                    engine='python')
+    if not docking:
+        df_active_ships_currDRS = df_active_ships_currDRS[(df_active_ships_currDRS.ext_rsn != 'Docking')]
 
-    def convert(dt): # To convert string date to date time
+    df_active_ships_currDRS['dt_today'] = todaydt  # add today date col for overdue calc.
+
+    def convert(dt):  # To convert string date to date time
         return datetime.datetime.strptime(dt, "%Y-%m-%d")
 
-    df_active_ships_currDRS['dt_ocurred']=df_active_ships_currDRS['dt_ocurred'].apply(convert) # convert report date to datetime
-    df_active_ships_currDRS['dt_today']=df_active_ships_currDRS['dt_today'].apply(convert)
-
-    df_active_ships_currDRS_within_ext=df_active_ships_currDRS[(df_active_ships_currDRS.status=='OPEN')
-                                                                & (df_active_ships_currDRS.ext_dt>df_active_ships_currDRS.dt_today)] # ext. date is more than today and OPEN
+    df_active_ships_currDRS['dt_ocurred'] = df_active_ships_currDRS['dt_ocurred'].apply(
+        convert)  # convert report date to datetime
+    df_active_ships_currDRS['dt_today'] = df_active_ships_currDRS['dt_today'].apply(convert)
+    # df_active_ships_currDRS['done_dt']=df_active_ships_currDRS['done_dt'].apply(convert)
+    # df_active_ships_currDRS['ext_dt']=df_active_ships_currDRS['ext_dt'].apply(convert)
+    df_active_ships_currDRS_within_ext = df_active_ships_currDRS[(df_active_ships_currDRS.status == 'OPEN')
+                                                                 & (
+                                                                             df_active_ships_currDRS.ext_dt > df_active_ships_currDRS.dt_today)]  # ext. date is more than today and OPEN
     # st.write(df_active_ships_currDRS.shape)
-    df_active_ships_currDRS=df_active_ships_currDRS[~df_active_ships_currDRS.DRS_ID.isin(df_active_ships_currDRS_within_ext.DRS_ID)]# Drop all those where ext. date is more than today and OPEN
+    df_active_ships_currDRS = df_active_ships_currDRS[~df_active_ships_currDRS.DRS_ID.isin(
+        df_active_ships_currDRS_within_ext.DRS_ID)]  # Drop all those where ext. date is more than today and OPEN
     # st.write(df_active_ships_currDRS.shape)
-    df_active_ships_currDRS_ext_past_today=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
-                                                                   & (df_active_ships_currDRS.dt_today>df_active_ships_currDRS.ext_dt)
-                                                                   & (df_active_ships_currDRS.dt_today>df_active_ships_currDRS.target_dt)
-                                                                   & (df_active_ships_currDRS.status=='OPEN')] # get OPEN items where ext. date has passed.
 
-    df_open_past_target=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
-                                                & (df_active_ships_currDRS.target_dt<df_active_ships_currDRS.dt_today)
-                                                & (df_active_ships_currDRS.status=='OPEN')] # OPEN and more than target date
-    df_open_past_90=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
-                                            & (df_active_ships_currDRS.dt_ocurred+timedelta(days=90)<df_active_ships_currDRS.dt_today)
-                                            & (df_active_ships_currDRS.status=='OPEN')
-                                            & (df_active_ships_currDRS.ext_rsn=='')] # OPEN and more than 90 days without valid reason
-    df_closed_od=df_active_ships_currDRS[(df_active_ships_currDRS.ship_name.isin(vslName))
-                                         & (df_active_ships_currDRS.dt_ocurred+timedelta(days=90)<df_active_ships_currDRS.done_dt)
-                                         & (df_active_ships_currDRS.status=='CLOSE') & (df_active_ships_currDRS.ext_rsn!='Docking')] # CLOSED in more than 90 days
-    #st.write(df_open_past_90.groupby("ship_name")["status"].count())
+    # _________________________________ Filters for overdue
 
-    #----------------------------Graph for OPEN and more than target date
+    mask1 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
+            & (df_active_ships_currDRS.status == 'OPEN') \
+            & (df_active_ships_currDRS.ext_dt == '') \
+            & (df_active_ships_currDRS.dt_ocurred + timedelta(days=90) < df_active_ships_currDRS.dt_today) \
+            & (
+                        df_active_ships_currDRS.target_dt == '')  # The def is OPEN & not extended & more than 90 days have passed since the date reported & there is no target date.
 
-    df_open_past_target.nc_detail=df_open_past_target.nc_detail.str.wrap(50)
-    df_open_past_target.nc_detail=df_open_past_target.nc_detail.apply(lambda x : x.replace('\n','<br>') )
-    fig_open_past_target=px.bar(df_open_past_target,x='ship_name',y=df_open_past_target['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'],color_discrete_sequence=px.colors.qualitative.Safe)
-    fig_open_past_target.update_layout(
-        title="Open Def. Past target date",
+    mask2 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
+            & (df_active_ships_currDRS.status == 'OPEN') \
+            & (df_active_ships_currDRS.ext_dt == '') \
+            & (
+                        df_active_ships_currDRS.dt_today > df_active_ships_currDRS.target_dt)  # The def is OPEN & not extended &
+    # target date has passed.
+
+    mask3 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
+            & (df_active_ships_currDRS.status == 'OPEN') \
+            & (
+                        df_active_ships_currDRS.dt_today > df_active_ships_currDRS.ext_dt)  # The def is OPEN & extension date
+    # has passed.
+
+    mask4 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
+            & (df_active_ships_currDRS.status == 'CLOSE') \
+            & (df_active_ships_currDRS.ext_dt != '') \
+            & (
+                        df_active_ships_currDRS.ext_dt < df_active_ships_currDRS.done_dt)  # The def is CLOSED but it was closed beyond the extension date in case it was extended.
+
+    mask5 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
+            & (df_active_ships_currDRS.status == 'CLOSE') \
+            & (df_active_ships_currDRS.ext_dt == '') \
+            & (df_active_ships_currDRS.done_dt > df_active_ships_currDRS.dt_ocurred + timedelta(
+        days=90))  # The def was not extended but it was closed in more than 90 days.
+
+    conditions = [mask1, mask2, mask3, mask4, mask5]
+    values = ['cat1', 'cat2', 'cat3', 'cat4', 'cat5']
+    df_active_ships_currDRS['overdue_cat'] = np.select(conditions, values)
+    df_active_ships_currDRS.overdue_cat = df_active_ships_currDRS.overdue_cat.replace('0', 'not_od')
+
+    # ----------------------------All overdue Items_______________________________________________________
+    df_active_ships_currDRS.nc_detail = df_active_ships_currDRS.nc_detail.str.wrap(50)
+    df_active_ships_currDRS.nc_detail = df_active_ships_currDRS.nc_detail.apply(lambda x: x.replace('\n', '<br>'))
+    df_all_overdue = df_active_ships_currDRS[mask1 | mask2 | mask3 | mask4 | mask5]
+
+    df_mask1 = df_active_ships_currDRS[mask1]
+    df_mask2 = df_active_ships_currDRS[mask2]
+    df_mask3 = df_active_ships_currDRS[mask3]
+    df_mask4 = df_active_ships_currDRS[mask4]
+    df_mask5 = df_active_ships_currDRS[mask5]
+    fig_all_overdue = px.bar(df_all_overdue, x='vslCode', y=df_all_overdue['DRS_ID'].value_counts()
+                             , hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail',
+                                           'status', 'ext_rsn', 'overdue_cat'],
+                             color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_all_overdue.update_layout(
+        title="All overdue Items",
         xaxis_title="Vessels",
         yaxis_title="Count of Overdue",
-        showlegend=False)
-    fig_open_past_target.update_xaxes(categoryorder='array',
-                                 categoryarray=sorted(df_active_ships_currDRS['ship_name']))
-
-    #----------------------------Graph for OPEN and more than 90 days without valid reason
-    df_open_past_90.nc_detail=df_open_past_90.nc_detail.str.wrap(50)
-    df_open_past_90.nc_detail=df_open_past_90.nc_detail.apply(lambda x : x.replace('\n','<br>') )
-    fig_open_past_90=px.bar(df_open_past_90,x='ship_name',y=df_open_past_90['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','target_dt','ext_dt','rpt_by','nc_detail','status'],color_discrete_sequence=px.colors.qualitative.Pastel1)
-    fig_open_past_90.update_layout(
-        title="Open Def. Past 90 Days",
+        showlegend=True, )
+    fig_all_overdue.update_xaxes(categoryorder='array',
+                                 categoryarray=vsl_code)
+    fig_mask1 = px.bar(df_mask1, x='vslCode', y=df_mask1['DRS_ID'].value_counts()
+                       ,
+                       hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail', 'status',
+                                   'ext_rsn'],
+                       color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_mask1.update_layout(
+        title="Cat 1 Items",
         xaxis_title="Vessels",
         yaxis_title="Count of Overdue",
-        showlegend=False)
-    fig_open_past_90.update_xaxes(categoryorder='array',
-                                 categoryarray=sorted(df_active_ships_currDRS['ship_name']))
+        showlegend=True, )
+    fig_mask1.update_xaxes(categoryorder='array', categoryarray=vsl_code)
 
-    #----------------------------Graph for CLOSED in more than 90 days
-
-    df_closed_od.nc_detail=df_closed_od.nc_detail.str.wrap(50)
-    df_closed_od.nc_detail=df_closed_od.nc_detail.apply(lambda x : x.replace('\n','<br>') )
-    fig_closed_od=px.bar(df_closed_od,x='ship_name',y=df_closed_od['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status','ext_rsn'],color_discrete_sequence=px.colors.qualitative.Pastel)
-    fig_closed_od.update_layout(
-        title="Closed but Ovrdue",
+    fig_mask2 = px.bar(df_mask2, x='vslCode', y=df_mask2['DRS_ID'].value_counts()
+                       ,
+                       hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail', 'status',
+                                   'ext_rsn'],
+                       color_discrete_sequence=px.colors.qualitative.Pastel, color='rpt_by')
+    fig_mask2.update_layout(
+        title="Cat 2 Items",
         xaxis_title="Vessels",
         yaxis_title="Count of Overdue",
-        showlegend=False)
+        showlegend=True, )
+    fig_mask2.update_xaxes(categoryorder='array',
+                           categoryarray=vsl_code)
 
-    fig_closed_od.update_xaxes(categoryorder='array',
-                                 categoryarray=sorted(df_active_ships_currDRS['ship_name']))
-    #----------------------------Graph for OPEN items where ext. date has passed (count).
-    df_active_ships_currDRS_ext_past_today.nc_detail=df_active_ships_currDRS_ext_past_today.nc_detail.str.wrap(50)
-    df_active_ships_currDRS_ext_past_today.nc_detail=df_active_ships_currDRS_ext_past_today.nc_detail.apply(lambda x : x.replace('\n','<br>') )
-    fig_ext_past_today=px.bar(df_active_ships_currDRS_ext_past_today,x='ship_name',y=df_active_ships_currDRS_ext_past_today['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','done_dt','rpt_by','nc_detail','status','ext_rsn'],color_discrete_sequence=px.colors.qualitative.Pastel)
-    fig_ext_past_today.update_layout(
-        title="Extended and not closed within Extended Date",
+    fig_mask3 = px.bar(df_mask3, x='vslCode', y=df_mask3['DRS_ID'].value_counts()
+                       ,
+                       hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail', 'status',
+                                   'ext_rsn'],
+                       color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_mask3.update_layout(
+        title="Cat 3 Items",
         xaxis_title="Vessels",
         yaxis_title="Count of Overdue",
-        showlegend=False)
-    fig_ext_past_today.update_xaxes(categoryorder='array',
-                                 categoryarray=sorted(df_active_ships_currDRS['ship_name']))
+        showlegend=True, )
+    fig_mask3.update_xaxes(categoryorder='array',
+                           categoryarray=vsl_code)
 
-    #----------------------------Graph for OPEN items where ext. date has passed (reason).
-    fig_ext_past_today2=px.bar(df_active_ships_currDRS_ext_past_today,y=["ship_name"], x="ext_rsn" # df_active_ships_currDRS_ext_past_today['DRS_ID'].value_counts()
-                ,hover_data=['dt_ocurred','rpt_by','nc_detail','status','ext_rsn'],color='ext_rsn',color_discrete_sequence=px.colors.qualitative.Pastel)
-    fig_ext_past_today2.update_layout(
-        title="Extended and not closed Reasons",
+    fig_mask4 = px.bar(df_mask4, x='vslCode', y=df_mask4['DRS_ID'].value_counts()
+                       ,
+                       hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail', 'status',
+                                   'ext_rsn'],
+                       color_discrete_sequence=px.colors.qualitative.Pastel)
+    fig_mask4.update_layout(
+        title="Cat 4 Items",
         xaxis_title="Vessels",
-        yaxis_title="Count of Reason",
-        showlegend=True)
-    fig_ext_past_today2.update_xaxes(categoryorder='array',
-                                 categoryarray=sorted(df_active_ships_currDRS['ship_name']))
+        yaxis_title="Count of Overdue",
+        showlegend=True, )
+    fig_mask4.update_xaxes(categoryorder='array',
+                           categoryarray=vsl_code)
 
-    #--------------------------Display graphs
+    fig_mask5 = px.bar(df_mask5, x='vslCode', y=df_mask5['DRS_ID'].value_counts()
+                       ,
+                       hover_data=['dt_ocurred', 'done_dt', 'target_dt', 'ext_dt', 'rpt_by', 'nc_detail', 'status',
+                                   'ext_rsn'],
+                       color_discrete_sequence=px.colors.qualitative.Pastel)
 
-    col1,col2,col3 = st.columns(3)
+    fig_mask5.update_layout(
+        title="Cat 5 Items",
+        xaxis_title="Vessels",
+        yaxis_title="Count of Overdue",
+        showlegend=True, )
+    fig_mask5.update_xaxes(categoryorder='array',
+                           categoryarray=vsl_code)
+
+    # --------------------------Display graphs
+
     with col1:
-        st.plotly_chart(fig_open_past_target, use_container_width=True)
-        st.plotly_chart(fig_ext_past_today, use_container_width=True)
+        st.plotly_chart(fig_all_overdue, use_container_width=True)
+        st.plotly_chart(fig_mask3, use_container_width=True)
+
     with col2:
-        st.plotly_chart(fig_open_past_90, use_container_width=True)
-        st.plotly_chart(fig_ext_past_today2, use_container_width=True)
+        st.plotly_chart(fig_mask1, use_container_width=True)
+        st.plotly_chart(fig_mask4, use_container_width=True)
+
     with col3:
-        st.plotly_chart(fig_closed_od, use_container_width=True)
+        st.plotly_chart(fig_mask2, use_container_width=True)
+        st.plotly_chart(fig_mask5, use_container_width=True)
+
+
 
 def overdue_reports():
     st.title('Overdue Report')
