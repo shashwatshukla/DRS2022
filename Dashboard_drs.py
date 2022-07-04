@@ -105,14 +105,14 @@ def dashboard():
             #df_xaxis = df_xaxis.replace({'ship_name': allshipCode})
             fig = px.bar(df_xaxis, x='ship_name', y='Count', height=400,
                          labels={"ship_name": "Vessel", "Count": "Number of def. past the extension date"},
-                         title="<b>Count of extended overdue not closed till today</b>",text_auto=True)
+                         title="<b>Count of overdue items past extension date</b>",text_auto=True)
             # color_continuous_scale=px.colors.sequential.Burg)
             df_active = df_active.sort_values(by='ship_name')
             #df_active = df_active.replace({'ship_name': allshipCode})
             #df_active.mask(df_active['ext_rsn'] == "", 'Update ext. Reason', inplace=True)
             df_active['ext_rsn'].loc[(df_active['ext_rsn']=="")]='update ext. reason'
             fig2 = px.bar(df_active, y=["ship_name"], x="ext_rsn", height=400, color='ext_rsn',
-                          title="<b>Vessels with open Extended Items by Reason</b>",
+                          title="<b>Extended Items by Reason</b>",
                           color_discrete_sequence=px.colors.qualitative.Pastel)
             fig.update_layout(legend_orientation='h')
             fig.update_xaxes(categoryorder='array',
@@ -122,9 +122,6 @@ def dashboard():
             st.plotly_chart(fig, use_container_width=True)
             st.plotly_chart(fig2, use_container_width=True)
             st.write(df_active)
-            st.plotly_chart(fig)
-            st.plotly_chart(fig2)
-    st.write(df_active)
     csv = df_active.to_csv().encode('utf-8')  # write df to csv
     btnMsg = 'Download ' + str(df_active.shape[0]) + ' Records as CSV'
     st.download_button(btnMsg, csv, "DRS-file.csv", "text/csv", key='download-csv')
