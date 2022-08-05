@@ -9,6 +9,9 @@ def filtered_Data():
     #  Load dataframe
     conn = sqlite3.connect(master_db)
     df = get_data(master_db,'drsend')
+    cols_to_change=['critical_eq_tf', 'overdue', 'blackout_tf','docking_tf', 'coc_tf','status','delay_tf','downtime_tf','brkdn_tf']# change case to upper for filters to wok correctly
+    for cols in cols_to_change:
+        df[cols]=df[cols].str.upper()
     df_counts = pd.read_sql_query("SELECT ship_name, "
                                   "SUM (CASE WHEN status= 'OPEN' then 1 ELSE 0 END) as 'Open',"
                                   "SUM (CASE WHEN status= 'CLOSE' then 1 ELSE 0 END) as 'Closed' "
@@ -24,7 +27,7 @@ def filtered_Data():
     dffltMaster = pd.read_sql_query('select fltNameUID, fltMainName, fltLocalName from fleet', conn)
     conn.close()
 
-    disp_cols = ['ship_name', 'dt_ocurred', 'target_dt', 'done_dt', 'ser_no', 'nc_detail', 'est_cause_ship',
+    disp_cols = ['ship_name','overdue', 'dt_ocurred', 'target_dt', 'done_dt', 'ser_no', 'nc_detail', 'est_cause_ship',
                  'init_action_ship', 'init_action_ship_dt',
                  'final_action_ship', 'final_action_ship_dt', 'co_eval',
                  'reason_rc', 'corr_action', 'rpt_by', 'insp_by', 'insp_detail', 'update_by', 'update_dt',
@@ -60,9 +63,9 @@ def filtered_Data():
 
         fltList['All vessels']=sorted(uniqShips) # Added all ships manually to dict
 
-        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0])
+        fltName = st.multiselect('Select the Fleet', options=fltList.keys(), default=list(flt_list.keys())[0:3])
 
-        statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN'))
+        statusNow = st.multiselect('Status:', options=('OPEN', 'CLOSE'), default=('OPEN', 'CLOSE'))
         docking = st.multiselect("Docking", options=('TRUE', 'FALSE'), default=('TRUE', 'FALSE'))
 
 
@@ -89,11 +92,12 @@ def filtered_Data():
         endDt = dateFmTo[1]
         # print(dateFmTo)
         # dt_slider = st.slider('choose dates', [datetime.date(year=2021,month=1,day=1),dt_today])
-        mask = (df['dt_ocurred'] > str(startDt)) & (df['dt_ocurred'] <= str(endDt))
+        mask = (df['dt_ocurred'] >= str(startDt)) & (df['dt_ocurred'] <= str(endDt))
+
         dfSelected = dfSelected[mask]
         rptBy = st.multiselect('Reported by', options=sorted(dfSelected['rpt_by'].unique()),
-                               default=['C MMS', 'F Vessel'])
-        overDueStat = st.multiselect('Overdue Status', options=['Yes', 'No'], default=['Yes', 'No'])
+                               default=sorted(dfSelected['rpt_by'].unique()))
+        overDueStat = st.multiselect('Overdue Status', options=['YES', 'NO'], default=['YES', 'NO'])
 
         with col4:
             severity = st.multiselect('Severity:', options=dfSelected['Severity'].unique(),
@@ -103,9 +107,8 @@ def filtered_Data():
 
     # with filterContainer:
     #  now filter the dataframe using all above filter settings
-    dfFiltered = dfSelected.query("ship_name == @vslName & status == @statusNow & brkdn_tf == @brkdn "
-                                  "& critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout"
-                                  "& coc_tf == @coc & overdue == @overDueStat & Severity == @severity & rpt_by == @rptBy")
+    dfFiltered = dfSelected.query("ship_name == @vslName & status == @statusNow & brkdn_tf == @brkdn & critical_eq_tf == @criticalEq & docking_tf == @docking & blackout_tf == @blackout & coc_tf == @coc & Severity == @severity & rpt_by == @rptBy")# & overdue == @overDueStat")
+
 
     dfFiltered = dfFiltered[dfFiltered['nc_detail'].str.contains(searchText, regex=False)]  # search on text entered
     st.dataframe(dfFiltered[disp_cols], height=600)
