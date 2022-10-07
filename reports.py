@@ -157,7 +157,7 @@ def dummy():
         st.write(df2)
         write_to_file = st.button('Generate excel report')
     if write_to_file:
-        df_writer(dfs, 'output', 'KPI_report.xlsx')
+
 
 
 def overdue_reports():
