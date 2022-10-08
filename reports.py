@@ -5,21 +5,27 @@ import datetime
 from datetime import timedelta
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 import numpy as np
+from openpyxl import load_workbook
+import xlwings as xw
 
 
 def dummy():
-    def df_writer(df_list, sheets, file_name):
-        with pd.ExcelWriter(file_name, mode="a", engine="openpyxl", if_sheet_exists='overlay') as writer:
-            row = 0
-            for idx, dataframe in enumerate(df_list):
-                col = len(dataframe.columns)
-                # if idx==0:
 
-                if idx == 1:
-                    row = 29
-                if idx == 2:
-                    row = 69
-                dataframe.to_excel(writer, sheet_name=sheets, startrow=row, startcol=0, index=True)
+    def df_writer(df_list, sheets, file_name):
+        wb = load_workbook(file_name)
+        ws = wb[sheets]
+        ws.delete_rows(2, 100)
+        wb.save('KPI_report.xlsx')
+        wb.close()
+        with pd.ExcelWriter(file_name, mode="a", engine="openpyxl", if_sheet_exists='overlay') as writer:
+
+
+            col = 0
+            for dataframe in df_list:
+                dataframe.to_excel(writer, sheet_name=sheets, startrow=1, startcol=col, index=True)
+                col=col+len(dataframe.columns)+3
+                st.write(col)
+
 
     curr_year = str(datetime.datetime.now().year)
     todaydt = str(pd.Timestamp('today').date())
@@ -36,10 +42,10 @@ def dummy():
     df_merged["statusActiveInactive"]=pd.to_numeric(df_merged["statusActiveInactive"])
     print(df_merged.dtypes)
     df_merged = df_merged.loc[df_merged["statusActiveInactive"] == 1]
-    st.write(df_merged)
+
     df_active_ships = df_merged  # drop inactive ships
     df_active_ships = df_active_ships.drop(
-        df_active_ships[(df_active_ships.dt_ocurred < '2019-12-23')].index)  # Drop all entries before
+        df_active_ships[(df_active_ships.dt_ocurred < '2022-01-01')].index)  # Drop all entries before
     vsl_list_fleetwise = get_vessel_byfleet(1)
     dt_today = datetime.date.today()
 
@@ -144,7 +150,7 @@ def dummy():
     gridOptions = gb.build()
 
     # AgGrid(df1, gridOptions=gridOptions, enable_enterprise_modules=True)
-    st.write(df1)
+
     df1 = pd.pivot_table(df1, index=['vslCode'], aggfunc='sum')
 
     df1 = df1.rename(columns={'delay_hr': 'Delay(h)', 'downtime_hr': 'Downtime(h)',
