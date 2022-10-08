@@ -9,17 +9,14 @@ from openpyxl import load_workbook
 from io import BytesIO
 
 
-def dummy():
-
-    def df_writer(df_list, sheets, file_name):
+def make_xlRpt():
+    def df_writer(df_list, file_name):
         wb = load_workbook(file_name)
-        ws = wb[sheets]
+        ws = wb['output']
         ws.delete_rows(2, 100)
         wb.save('KPI_report.xlsx')
         wb.close()
         with pd.ExcelWriter(file_name, mode="a", engine="openpyxl", if_sheet_exists='overlay') as writer:
-
-
             col = 0
             for dataframe in df_list:
                 dataframe.to_excel(writer, sheet_name=sheets, startrow=1, startcol=col, index=True)
@@ -49,6 +46,23 @@ def dummy():
     print(df_merged.dtypes)
     df_merged = df_merged.loc[df_merged["statusActiveInactive"] == 1]
 
+    mask1 = (df_merged.target_dt == '') \
+            & (df_merged.done_dt == '') \
+            & (df_merged.dt_ocurred + timedelta(
+        days=90) < df_merged.dt_today)  # no target date & no close date & more than 90 days.
+
+    mask2 = (df_merged.target_dt != '') \
+            & (df_merged.done_dt == '') \
+            & (df_merged.dt_today > df_merged.target_dt)  # no close date & past target date.
+
+    mask3 = (df_merged.done_dt != '') \
+            & (df_merged.done_dt > df_merged.dt_ocurred + timedelta(
+        days=90))  # close >90 days.
+
+    conditions = [mask1, mask2, mask3]
+    values = [1, 1, 1]
+    df_merged['Overdue_status'] = np.select(conditions, values)
+
     df_active_ships = df_merged  # drop inactive ships
     df_active_ships = df_active_ships.drop(
         df_active_ships[(df_active_ships.dt_ocurred < '2022-01-01')].index)  # Drop all entries before
@@ -67,16 +81,9 @@ def dummy():
 
     vsl_code = list(df_active_ships.vslCode.where(df_active_ships.ship_name.isin(vslListPerFlt)).unique())
     vsl_code = vsl_code[1:]
-    vslName = st.multiselect('Select the vessel:', options=sorted(vslListPerFlt), default=sorted(vslListPerFlt))
 
     docking = st.checkbox('Include Docking Items')
-
-    df_currDRS = df_active_ships.query(
-        "ship_name == @vslName and (dt_ocurred.str.contains(@curr_year) or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))",
-        engine='python')
-    df_active_ships_currDRS = df_active_ships.query("ship_name == @vslName and (dt_ocurred.str.contains(@curr_year)"
-                                                    " or done_dt.str.contains(@curr_year) or status.str.contains('OPEN'))",
-                                                    engine='python')
+    df_active_ships_currDRS = df_active_ships.query("(dt_ocurred.str.contains(@curr_year) or done_dt.str.contains(@curr_year))",engine='python')
 
     if not docking:
         df_active_ships_currDRS = df_active_ships_currDRS[(df_active_ships_currDRS.ext_rsn != 'Docking')]
@@ -104,80 +111,65 @@ def dummy():
 
     # ----------------------------All overdue Items_______________________________________________________
 
-    mask1 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
-            & (df_active_ships_currDRS.target_dt == '') \
-            & (df_active_ships_currDRS.done_dt == '') \
-            & (df_active_ships_currDRS.dt_ocurred + timedelta(
-        days=90) < df_active_ships_currDRS.dt_today)  # no target date & no close date & more than 90 days.
 
-    mask2 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
-            & (df_active_ships_currDRS.target_dt != '') \
-            & (df_active_ships_currDRS.done_dt == '') \
-            & (
-                        df_active_ships_currDRS.dt_today > df_active_ships_currDRS.target_dt)  # no close date & past target date.
 
-    mask3 = (df_active_ships_currDRS.ship_name.isin(vslName)) \
-            & (df_active_ships_currDRS.done_dt != '') \
-            & (df_active_ships_currDRS.done_dt > df_active_ships_currDRS.dt_ocurred + timedelta(
-        days=90))  # close >90 days.
 
-    conditions = [mask1, mask2, mask3]
-    values = [1, 1, 1]
-    df_active_ships_currDRS['Overdue_status'] = np.select(conditions, values)
-    # df_active_ships_currDRS.Overdue_status = df_active_ships_currDRS.Overdue_status.replace('0', 'Not Overdue')
-
-    # overdue_group = df_active_ships_currDRS.groupby(['vslFleet', 'ship_name', 'Overdue_status'])['DRS_ID'].count()
-    #
-    # mask_dt = (df_active_ships_currDRS['dt_ocurred'] >= str(startDt)) & (
-    #             df_active_ships_currDRS['dt_ocurred'] <= str(endDt))
-    # df_active_ships_currDRS=df_active_ships_currDRS[mask_dt]
-
-    df1 = df_active_ships_currDRS[
-        ['vslCode', 'dt_ocurred', "delay_hr", "downtime_hr", 'critical_eq_tf', "blackout_tf", "docking_tf",
+    df_KPI = df_active_ships_currDRS[
+        ['vslFleet','vslCode', 'dt_ocurred', "delay_hr", "downtime_hr", 'critical_eq_tf', "blackout_tf", "docking_tf",
          "dispensation_tf", "coc_tf"]]
-    # df1=df1[mask_dt]
-    df2 = df_active_ships_currDRS[['dt_ocurred', 'vslCode', 'rpt_by']]
-    df3 = df_active_ships_currDRS[['vslCode', 'status', 'Overdue_status', 'DRS_ID']]
-    df3 = pd.pivot_table(df3, index=['vslCode'], aggfunc='sum', columns=['status'], values='Overdue_status')
-    df3 = df3.fillna(0)
-    df3 = df3.astype(int)
-    df2 = pd.pivot_table(df2, index=['vslCode'], aggfunc='count', columns=['rpt_by'], values='rpt_by')
-    df2 = df2.fillna(0)
-    df2 = df2.astype(int)
+    df_KPI = df_KPI.rename(columns={'delay_hr': 'Delay', 'downtime_hr': 'DnTime',
+                                            'critical_eq_tf': 'CEq_fail', 'dispensation_tf': 'Disp',
+                                            'coc_tf': 'COC', 'Overdue_status': 'OvDue', 'blackout_tf': 'Blackout',
+                                            'docking_tf': 'Docking'})
+
+    df_Rpt_by = df_active_ships_currDRS[['dt_ocurred', 'vslCode', 'rpt_by']]# for report stats
+    df_Rpt_by['rpt_by']=df_Rpt_by['rpt_by'].str[2:]
+    df_Ovd = df_active_ships_currDRS[['vslCode', 'status', 'Overdue_status', 'DRS_ID']]
+    df_Ovd = pd.pivot_table(df_Ovd, index=['vslCode'], aggfunc='sum', columns=['status'], values='Overdue_status')
+    df_Ovd = df_Ovd.fillna(0)
+    df_Ovd = df_Ovd.astype(int)
+    df_Rpt_by = pd.pivot_table(df_Rpt_by, index=['vslCode'], aggfunc='count', columns=['rpt_by'], values='rpt_by')
+    df_Rpt_by = df_Rpt_by.fillna(0)
+    df_Rpt_by = df_Rpt_by.astype(int)
+
     col1, col2, col3 = st.columns([3, 1, 2])
     with col2:
-        st.header('Overdue Stats')
-        st.write(df3)
+        st.header('Overdue Status')
+        st.write(df_Ovd)
 
-    gb = GridOptionsBuilder.from_dataframe(df1)
+    gb = GridOptionsBuilder.from_dataframe(df_KPI)
     gb.configure_pagination()
     gb.configure_side_bar()
     gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc="sum", editable=True)
     gridOptions = gb.build()
 
-    # AgGrid(df1, gridOptions=gridOptions, enable_enterprise_modules=True)
+    # AgGrid(df_KPI, gridOptions=gridOptions, enable_enterprise_modules=True)
 
-    df1 = pd.pivot_table(df1, index=['vslCode'], aggfunc='sum')
+    df_KPI_pvt = pd.pivot_table(df_KPI, index=['vslCode'], aggfunc='sum')
+    df_KPI_flt = pd.pivot_table(df_KPI, index=['vslFleet'], aggfunc='sum')
 
-    df1 = df1.rename(columns={'delay_hr': 'Delay(h)', 'downtime_hr': 'Downtime(h)',
-                              'critical_eq_tf': 'Critical', 'dispensation_tf': 'Dispensation',
-                              'coc_tf': 'COC', 'Overdue_status': 'Overdue', 'blackout_tf': 'Blackouts',
-                              'docking_tf': 'Docking'})
+
+
 
     with col1:
-        st.header('KPI Stats')
-        # df1.replace(to_replace=0, value=pd.NA, inplace=True )
-        # st.write(df1)
-        st.write(df1.style.format(subset=['Delay(h)', 'Downtime(h)'], formatter="{:.2f}"))
-        df_delay = df1[['Delay(h)', 'Downtime(h)']]
-        df_KPI = df1[['Critical', 'Dispensation', 'COC', 'Blackouts']]
+        st.header('KPI')
+        # df_KPI.replace(to_replace=0, value=pd.NA, inplace=True )
+        st.write(df_KPI_flt.style.format(subset=['Delay', 'DnTime'], formatter="{:.2f}"))
+        st.write(df_KPI_pvt.style.format(subset=['Delay', 'DnTime'], formatter="{:.2f}"))
+        df_delay = df_KPI[['Delay', 'DnTime']]
+        df_KPI = df_KPI[['CEq_fail', 'Disp', 'COC', 'Blackout']]
         st.bar_chart(df_delay)
         st.bar_chart(df_KPI)
-    dfs = [df1, df2, df3]
-    df_writer(dfs, 'output', 'KPI_report.xlsx')
+    dfs = [df_KPI, df_Rpt_by, df_Ovd]
+    df_writer(dfs, 'KPI_report.xlsx')
+
+    def makestats(dataframe,fleet_name):
+        dfA=pd.pivot_table(dataframe, index=['vslCode'], aggfunc='sum')
+
+
     with col3:
-        st.header('Reporting Stats')
-        st.write(df2)
+        st.header('Reported By')
+        st.write(df_Rpt_by)
         st.download_button(label="Download Report",
                            data=read_file('KPI_report.xlsx'),
                            file_name='Report.xlsx',
@@ -193,4 +185,4 @@ def overdue_reports():
 
 if __name__ == '__main__':
     st.set_page_config(page_title='DR Sender', layout='wide')
-    dummy()
+    make_xlRpt()
