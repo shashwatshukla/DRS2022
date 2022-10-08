@@ -6,7 +6,7 @@ from datetime import timedelta
 from st_aggrid import GridOptionsBuilder, AgGrid, GridUpdateMode, DataReturnMode, JsCode
 import numpy as np
 from openpyxl import load_workbook
-import xlwings as xw
+from io import BytesIO
 
 
 def dummy():
@@ -25,6 +25,12 @@ def dummy():
                 dataframe.to_excel(writer, sheet_name=sheets, startrow=1, startcol=col, index=True)
                 col=col+len(dataframe.columns)+3
                 st.write(col)
+
+
+    def read_file(fyle):
+        with open(fyle, "rb") as filetoread:
+            xlsmbyte = filetoread.read()
+            return xlsmbyte
 
 
     curr_year = str(datetime.datetime.now().year)
@@ -168,12 +174,16 @@ def dummy():
         st.bar_chart(df_delay)
         st.bar_chart(df_KPI)
     dfs = [df1, df2, df3]
+    df_writer(dfs, 'output', 'KPI_report.xlsx')
     with col3:
         st.header('Reporting Stats')
         st.write(df2)
-        write_to_file = st.button('Generate excel report')
-    if write_to_file:
-        df_writer(dfs, 'output', 'KPI_report.xlsx')
+        st.download_button(label="Download Report",
+                           data=read_file('KPI_report.xlsx'),
+                           file_name='Report.xlsx',
+                           mime='application/vns.ms-excel')
+
+
 
 
 def overdue_reports():
