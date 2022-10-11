@@ -137,7 +137,7 @@ def make_xlRpt():
     with col1:
         st.header('KPI')
         st.write(df_KPI_flt.style.format(subset=['Delay', 'DnTime'], formatter='{:.2f}'), use_column_width=True)
-        rw=1
+        rw=2
         df_writer(df_KPI_flt, 'KPI_template.xlsx', rw, 0, 'a')
         for i,j in enumerate(flt):
             print(rw)
@@ -165,10 +165,6 @@ def make_xlRpt():
             Ovd = Ovd.fillna(0)
             #Ovd = df_Ovd.astype(int)
             st.write(Ovd)
-
-
-
-    #df_writer(dfs, 'KPI_template.xlsx')
 
     with col3:
         st.header('Reported By')
