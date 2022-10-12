@@ -7,6 +7,7 @@ import numpy as np
 from openpyxl import load_workbook
 from io import BytesIO
 from shutil import copyfile
+import time
 
 
 def make_xlRpt():
@@ -132,25 +133,23 @@ def make_xlRpt():
     # st.write(last_update)
 
     col1, col2, col3 = st.columns([3, 2, 3])
-    df_KPI_flt = pd.pivot_table(df_KPI, index=['Fleet'], aggfunc='sum')
+    df_KPI_flt_pivot = pd.pivot_table(df_KPI, index=['Fleet'], aggfunc='sum')
     flt = ['MMS-TOK', 'MMS-SG', 'MMS-SMI', 'Cargo Fleet (TOK)']
     with col1:
         st.header('KPI')
-        st.write(df_KPI_flt.style.format(subset=['Delay', 'DnTime'], formatter='{:.2f}'), use_column_width=True)
-        rw=2
-        df_writer(df_KPI_flt, 'KPI_template.xlsx', rw, 0, 'a')
+        st.write(df_KPI_flt_pivot.style.format(subset=['Delay', 'DnTime'], formatter='{:.2f}'), use_column_width=True)
+        row_kpi = 2
+        df_writer(df_KPI_flt_pivot, 'KPI_template.xlsx', row_kpi, 0, 'Fleet KPI')
+
         for i,j in enumerate(flt):
-            print(rw)
-            a=st.write(j,' KPI')
+            print(row_kpi)
+            KPI_name=st.write(j,' KPI')
             df_KPI_pvt = pd.pivot_table(makestats('df_KPI_pvt',df_KPI,j), index=['vslCode'], aggfunc='sum',margins=True)
             st.write(df_KPI_pvt.style.format(subset=['Delay', 'DnTime'], formatter='{:.2f}'), use_column_width=True)
-
-            df_writer(df_KPI_pvt,'KPI_template.xlsx',rw,0,a)
+            time.sleep(2)
+            df_writer(df_KPI_pvt,'KPI_template.xlsx',row_kpi+len(df_KPI_flt_pivot.index)+3,0,KPI_name)
             print('-----------------------------------------------------------------------------------------------------------------------------')
-            rw=rw+len(df_KPI_pvt.index)+3
-            print(rw)
-        # df_KPI.replace(to_replace=0, value=pd.NA, inplace=True )
-        # st.write(df_KPI_flt.style.format(subset=['Delay', 'DnTime'], formatter='{:.2f}'))
+            row_kpi=row_kpi+len(df_KPI_pvt.index)+3
         #
         df_delay = df_KPI_pvt[['Delay', 'DnTime']]
         df_KPI = df_KPI_pvt[['CEq_fail', 'Disp', 'COC', 'Blackout']]
@@ -160,23 +159,31 @@ def make_xlRpt():
         st.header('Overdue Status')
         st.write(fleet_numbrs)
         for i,j in enumerate(flt):
-            st.write(j)
-            Ovd = pd.pivot_table(makestats('Ovd',df_Ovd,j), index=['vslCode'], aggfunc='sum', columns=['status'], values='OvDue',margins=True)
-            Ovd = Ovd.fillna(0)
-            #Ovd = df_Ovd.astype(int)
-            st.write(Ovd)
+            row_ovd=2
+            col_ovd=len(df_KPI_pvt.column)+3
+            ovd_name=st.write(j)
+            df_ovd_pivot = pd.pivot_table(makestats('df_ovd_pivot',df_Ovd,j), index=['vslCode'], aggfunc='sum', columns=['status'], values='OvDue',margins=True)
+            df_ovd_pivot = df_ovd_pivot.fillna(0)
+            #df_ovd_pivot = df_df_ovd_pivot.astype(int)
+            st.write(df_ovd_pivot)
+            df_writer(df_ovd_pivot,'KPI_template.xlsx',row_ovd+len(df_KPI_flt_pivot.index)+3,col_ovd,ovd_name)
+            row_ovd = row_ovd + len(df_ovd_pivot.index) + 3
+            time.sleep(2)
 
     with col3:
         st.header('Reported By')
         st.write(fleet_numbrs)
+        row_rpt=2
+        col_rpt=len(df_KPI_pvt.columns+3)+len(df_ovd_pivot.columns+3)
         for i,j in enumerate(flt):
-            st.write(j)
-            Rpt_by = pd.pivot_table(makestats('Rpt_by',df_Rpt_by,j), index=['vslCode'], aggfunc='count', columns=['rpt_by'],
+            st.write(j,'Reporting')
+            Rpt_by_pivot = pd.pivot_table(makestats('Rpt_by',df_Rpt_by,j), index=['vslCode'], aggfunc='count', columns=['rpt_by'],
                                     values='rpt_by')
 
-            Rpt_by = Rpt_by.fillna(0)
-            Rpt_by = Rpt_by.astype(int)
-            st.write(Rpt_by)
+            Rpt_by_pivot = Rpt_by_pivot.fillna(0)
+            Rpt_by_pivot = Rpt_by_pivot.astype(int)
+            st.write(Rpt_by_pivot)
+            time.sleep(2)
 
         # st.write(df_Rpt_by)
         st.download_button(label='Download Report',
